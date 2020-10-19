@@ -9,8 +9,8 @@ from config import cfg
 class MuCo:
     def __init__(self, data_split):
         self.data_split = data_split
-        self.img_dir = osp.join('..', 'data', 'MuCo', 'data')
-        self.train_annot_path = osp.join('..', 'data', 'MuCo', 'data', 'MuCo-3DHP.json')
+        self.img_dir = osp.join('/', 'data', 'MuCo', 'data')
+        self.train_annot_path = osp.join('/', 'data', 'MuCo', 'data', 'MuCo-3DHP.json')
         self.joint_num = 21
         self.joints_name = ('Head_top', 'Thorax', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Pelvis', 'Spine', 'Head', 'R_Hand', 'L_Hand', 'R_Toe', 'L_Toe')
         self.flip_pairs = ( (2, 5), (3, 6), (4, 7), (8, 11), (9, 12), (10, 13), (17, 18), (19, 20) )

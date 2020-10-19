@@ -14,9 +14,9 @@ from utils.vis import vis_keypoints, vis_3d_skeleton
 class MuPoTS:
     def __init__(self, data_split):
         self.data_split = data_split
-        self.img_dir = osp.join('..', 'data', 'MuPoTS', 'data', 'MultiPersonTestSet')
-        self.test_annot_path = osp.join('..', 'data', 'MuPoTS', 'data', 'MuPoTS-3D.json')
-        self.human_bbox_root_dir = osp.join('..', 'data', 'MuPoTS', 'bbox_root', 'bbox_root_mupots_output.json')
+        self.img_dir = osp.join('/', 'data', 'MuPoTS', 'data', 'MultiPersonTestSet')
+        self.test_annot_path = osp.join('/', 'data', 'MuPoTS', 'data', 'MuPoTS-3D.json')
+        self.human_bbox_root_dir = osp.join('/', 'data', 'MuPoTS', 'bbox_root', 'bbox_root_mupots_output.json')
         self.joint_num = 21 # MuCo-3DHP
         self.joints_name = ('Head_top', 'Thorax', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Pelvis', 'Spine', 'Head', 'R_Hand', 'L_Hand', 'R_Toe', 'L_Toe') # MuCo-3DHP
         self.original_joint_num = 17 # MuPoTS

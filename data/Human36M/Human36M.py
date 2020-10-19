@@ -12,9 +12,9 @@ from utils.vis import vis_keypoints, vis_3d_skeleton
 class Human36M:
     def __init__(self, data_split):
         self.data_split = data_split
-        self.img_dir = osp.join('..', 'data', 'Human36M', 'images')
-        self.annot_path = osp.join('..', 'data', 'Human36M', 'annotations')
-        self.human_bbox_root_dir = osp.join('..', 'data', 'Human36M', 'bbox_root', 'bbox_root_human36m_output.json')
+        self.img_dir = osp.join('/', 'data', 'Human36M', 'images')
+        self.annot_path = osp.join('/', 'data', 'Human36M', 'annotations')
+        self.human_bbox_root_dir = osp.join('/', 'data', 'Human36M', 'bbox_root', 'bbox_root_human36m_output.json')
         self.joint_num = 18 # original:17, but manually added 'Thorax'
         self.joints_name = ('Pelvis', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Torso', 'Neck', 'Nose', 'Head', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'Thorax')
         self.flip_pairs = ( (1, 4), (2, 5), (3, 6), (14, 11), (15, 12), (16, 13) )
