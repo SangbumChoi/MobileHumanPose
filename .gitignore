@@ -1,9 +1,19 @@
+# virtualenv setting
 venv_3DMPPE
+
+# output result
 output
-data/MPII/__pycache__
-data/Human36M/__pycache__
-common/nets/__pycache__
-common/utils/__pycache__
-main/__pycache__
-demo/*.pth.ta
-__pycache__
+
+# demo output
+demo/*.pth.tar
+
+# byte-compiled
+__pycache_/
+*/__pycache/
+*/*/__pycache/
+*/*/*/__pycache/
+*.py[cod]
+*.pyc
+
+# nohup process
+*.out
