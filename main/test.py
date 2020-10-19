@@ -37,7 +37,7 @@ def main():
     cudnn.deterministic = False
     cudnn.enabled = True
 
-    tester = Tester(args.model_path, args.base_line)
+    tester = Tester(args.model, args.baseline)
     tester._make_batch_generator()
     tester._make_model()
 
