@@ -62,8 +62,9 @@ class Base(object):
 
 class Trainer(Base):
     
-    def __init__(self):
+    def __init__(self, base_line):
         super(Trainer, self).__init__(log_name = 'train_logs.txt')
+        self.base_line = base_line
 
     def get_optimizer(self, model):
         
@@ -120,7 +121,7 @@ class Trainer(Base):
     def _make_model(self):
         # prepare network
         self.logger.info("Creating graph and optimizer...")
-        model = get_pose_net(cfg, True, self.joint_num)
+        model = get_pose_net(self.base_line, True, self.joint_num)
         model = DataParallel(model).cuda()
         optimizer = self.get_optimizer(model)
         if cfg.continue_train:

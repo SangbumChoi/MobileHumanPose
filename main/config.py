@@ -19,16 +19,12 @@ class Config:
     ## directory
     cur_dir = osp.dirname(os.path.abspath(__file__))
     root_dir = osp.join(cur_dir, '..')
-    data_dir = osp.join(root_dir, 'data')
+    data_dir = osp.join('/data')
     output_dir = osp.join(root_dir, 'output')
     model_dir = osp.join(output_dir, 'model_dump')
     vis_dir = osp.join(output_dir, 'vis')
     log_dir = osp.join(output_dir, 'log')
     result_dir = osp.join(output_dir, 'result')
- 
-    ## model setting
-    resnet_type = 50 # 50, 101, 152
-    mobilenet_type = True
     
     ## input, output
     input_shape = (256, 256) 
