@@ -135,8 +135,9 @@ class Trainer(Base):
 
 class Tester(Base):
     
-    def __init__(self, test_epoch):
-        self.test_epoch = int(test_epoch)
+    def __init__(self, test_model, base_line):
+        self.test_model_path = test_model
+        self.base_line = base_line
         super(Tester, self).__init__(log_name = 'test_logs.txt')
 
     def _make_batch_generator(self):
@@ -157,13 +158,13 @@ class Tester(Base):
     
     def _make_model(self):
         
-        model_path = os.path.join(cfg.model_dir, 'snapshot_%d.pth.tar' % self.test_epoch)
+        model_path = os.path.join(self.test_model_path)
         assert os.path.exists(model_path), 'Cannot find model at ' + model_path
         self.logger.info('Load checkpoint from {}'.format(model_path))
         
         # prepare network
         self.logger.info("Creating graph...")
-        model = get_pose_net(cfg, False, self.joint_num)
+        model = get_pose_net(self.base_line, False, self.joint_num)
         model = DataParallel(model).cuda()
         ckpt = torch.load(model_path)
         model.load_state_dict(ckpt['network'])

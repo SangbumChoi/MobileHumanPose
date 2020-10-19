@@ -17,3 +17,8 @@ demo/*.pth.tar
 
 # nohup process
 *.out
+
+# idea
+.DS_Store
+.idea
+
