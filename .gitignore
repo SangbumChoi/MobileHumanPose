@@ -8,8 +8,8 @@ output
 demo/*.pth.tar
 
 # byte-compiled
-__pycache_/
-*/__pycache/
+/__pycache_/
+*/__pycache/*
 */*/__pycache/
 */*/*/__pycache/
 *.py[cod]
