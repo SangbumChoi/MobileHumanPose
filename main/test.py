@@ -26,7 +26,6 @@ def parse_args():
         gpus[1] = int(gpus[1]) + 1
         args.gpu_ids = ','.join(map(lambda x: str(x), list(range(*gpus))))
     
-    assert args.test_epoch, 'Test epoch is required.'
     return args
 
 def main():
