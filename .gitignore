@@ -1,0 +1,5 @@
+venv_3DMPPE
+output
+data/MPII/__pycache__
+data/Human36M/__pycache__
+
