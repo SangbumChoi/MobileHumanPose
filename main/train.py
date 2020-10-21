@@ -8,6 +8,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, dest='gpu_ids')
     parser.add_argument('--continue', dest='continue_train', action='store_true')
+    parser.add_argument('--back_bone', type=str, dest='backbone')
+    parser.add_argument('--front_bone', type=str, dest='frontbone')
     args = parser.parse_args()
 
     if not args.gpu_ids:
@@ -29,7 +31,7 @@ def main():
     cudnn.fastest = True
     cudnn.benchmark = True
 
-    trainer = Trainer()
+    trainer = Trainer(args.backbone, args.frontbone)
     trainer._make_batch_generator()
     trainer._make_model()
 

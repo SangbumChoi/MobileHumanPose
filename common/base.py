@@ -62,13 +62,14 @@ class Base(object):
 
 class Trainer(Base):
     
-    def __init__(self, base_line):
+    def __init__(self, backbone, frontbone):
         super(Trainer, self).__init__(log_name = 'train_logs.txt')
-        self.base_line = base_line
+        self.backbone = backbone
+        self.frontbone = frontbone
 
     def get_optimizer(self, model):
         
-        optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
+        optimizer = torch.optim.SGD(model.parameters(), lr=cfg.lr)
         return optimizer
 
     def set_lr(self, epoch):
@@ -121,7 +122,7 @@ class Trainer(Base):
     def _make_model(self):
         # prepare network
         self.logger.info("Creating graph and optimizer...")
-        model = get_pose_net(self.base_line, True, self.joint_num)
+        model = get_pose_net(self.backbone, self.frontbone, True, self.joint_num)
         model = DataParallel(model).cuda()
         optimizer = self.get_optimizer(model)
         if cfg.continue_train:
@@ -136,9 +137,10 @@ class Trainer(Base):
 
 class Tester(Base):
     
-    def __init__(self, test_model, base_line):
+    def __init__(self, test_model, backbone, frontbone):
         self.test_model_path = test_model
-        self.base_line = base_line
+        self.backbone = backbone
+        self.frontbone = frontbone
         super(Tester, self).__init__(log_name = 'test_logs.txt')
 
     def _make_batch_generator(self):
@@ -165,7 +167,7 @@ class Tester(Base):
         
         # prepare network
         self.logger.info("Creating graph...")
-        model = get_pose_net(self.base_line, False, self.joint_num)
+        model = get_pose_net(self.backbone, self.frontbone, True, self.joint_num)
         model = DataParallel(model).cuda()
         ckpt = torch.load(model_path)
         model.load_state_dict(ckpt['network'])
