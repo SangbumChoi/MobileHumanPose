@@ -19,6 +19,9 @@ def parse_args():
     if not args.gpu_ids:
         assert 0, print("Please set proper gpu ids")
 
+    if not args.joint:
+        assert print("please insert number of joint")
+
     if '-' in args.gpu_ids:
         gpus = args.gpu_ids.split('-')
         gpus[0] = 0 if not gpus[0].isdigit() else int(gpus[0])
