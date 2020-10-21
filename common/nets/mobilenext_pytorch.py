@@ -62,7 +62,10 @@ class SandGlass(nn.Module):
             return out
 
 class MobileNeXt(nn.Module):
-    def __init__(self, divisor=8, sand_glass_setting=None):
+    def __init__(self,
+                 width_mult=1.0,
+                 divisor=8,
+                 sand_glass_setting=None):
         super(MobileNeXt, self).__init__()
 
         block = SandGlass
@@ -70,8 +73,8 @@ class MobileNeXt(nn.Module):
         init_channel = 32
         last_channel = 2048
 
-        init_channel = _make_divisible(init_channel, divisor)
-        self.last_channel = _make_divisible(last_channel, divisor)
+        init_channel = _make_divisible(init_channel * width_mult, divisor)
+        self.last_channel = _make_divisible(last_channel * max(1.0, width_mult), divisor)
 
         if sand_glass_setting is None:
             sand_glass_setting = [
@@ -83,7 +86,7 @@ class MobileNeXt(nn.Module):
                 [6, 384, 4, 1],
                 [6, 576, 4, 2],
                 [6, 960, 2, 1],
-                [6, self.last_channel, 1, 1],
+                [6, self.last_channel / width_mult, 1, 1],
             ]
         self.block1 = nn.Sequential(
             nn.Conv2d(3, init_channel, kernel_size=3, stride=2, padding=1, groups=1, bias=False),

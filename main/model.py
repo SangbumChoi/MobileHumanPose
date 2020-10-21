@@ -162,7 +162,7 @@ class ResPoseNet(nn.Module):
 def get_pose_net(backbone_str, frontbone_str, is_train, joint_num):
     if backbone_str == 'mobxt':
         print("load MobileNeXt")
-        backbone = MobileNeXt(width_mult=1.0, identity_tensor_multiplier=1.0)
+        backbone = MobileNeXt(width_mult=1.0)
     else:
         print("load ResNet")
         backbone = ResNetBackbone(str)
