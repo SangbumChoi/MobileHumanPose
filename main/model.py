@@ -82,8 +82,8 @@ class CustomNet(nn.Module):
                 nn.ConvTranspose2d(
                     in_channels=self.inplanes,
                     out_channels=self.outplanes,
-                    kernel_size=4,
-                    stride=2,
+                    kernel_size=2,
+                    stride=1,
                     padding=1,
                     output_padding=0,
                     bias=False))
