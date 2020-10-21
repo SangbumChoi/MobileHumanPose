@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from nets.resnet import ResNetBackbone
-from nets.mobilnext_pytorch import MobileNeXt
+from nets.mobilenext_pytorch import MobileNeXt
 from config import cfg
 
 class HeadNet(nn.Module):
