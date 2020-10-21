@@ -106,12 +106,12 @@ class ResPoseNet(nn.Module):
             return loss_coord
 
 def get_pose_net(str, is_train, joint_num):
-    if str is 'mobxt':
-        backbone = MobileNeXt(width_mult=1.0, identity_tensor_multiplier=1.0)
+    if str == 'mobxt':
         print("load MobileNeXt")
+        backbone = MobileNeXt(width_mult=1.0, identity_tensor_multiplier=1.0)
     else:
-        backbone = ResNetBackbone(str)
         print("load ResNet")
+        backbone = ResNetBackbone(str)
 
     head_net = HeadNet(joint_num)
     if is_train:
