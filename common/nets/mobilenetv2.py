@@ -27,7 +27,6 @@ def _make_divisible(v, divisor, min_value=None):
     if min_value is None:
         min_value = divisor
     new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
-    print(new_v)
     # Make sure that round down does not go down by more than 10%.
     if new_v < 0.9 * v:
         new_v += divisor
@@ -89,7 +88,6 @@ class SandGlass(nn.Module):
             nn.Conv2d(oup, oup, kernel_size=3, stride=stride, groups=oup, padding=1, bias=False),
             norm_layer(oup),
         ])
-        print(layers)
         self.conv = nn.Sequential(*layers)
 
     def forward(self, x):
