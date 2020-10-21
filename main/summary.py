@@ -11,8 +11,9 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, dest='gpu_ids')
     parser.add_argument('--model_path', type=str, dest='model')
-    parser.add_argument('--joint_number', type=int, dest='joint')
-    parser.add_argument('--baseline', type=str, dest='baseline')
+    parser.add_argument('--joint_num', type=int, dest='joint')
+    parser.add_argument('--backbone', type=str, dest='backbone')
+    parser.add_argument('--frontbone', type=str, dest='frontbone')
     args = parser.parse_args()
 
     # test gpus
@@ -46,7 +47,7 @@ if joint_num == 21:
 # snapshot load
 model_path = args.model
 assert osp.exists(model_path), 'Cannot find model at ' + model_path
-model = get_pose_net(args.baseline, False, joint_num)
+model = get_pose_net(args.backbone, args.frontbone, False, joint_num)
 model = DataParallel(model).cuda()
 ckpt = torch.load(model_path)
 model.load_state_dict(ckpt['network'])
