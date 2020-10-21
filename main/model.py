@@ -82,8 +82,8 @@ class CustomNet(nn.Module):
                 nn.ConvTranspose2d(
                     in_channels=self.inplanes,
                     out_channels=self.outplanes,
-                    kernel_size=2,
-                    stride=1,
+                    kernel_size=4,
+                    stride=2,
                     padding=1,
                     output_padding=0,
                     bias=False))
@@ -168,8 +168,10 @@ def get_pose_net(backbone_str, frontbone_str, is_train, joint_num):
         backbone = ResNetBackbone(str)
 
     if frontbone_str == 'custom':
+        print("load CustomNet")
         head_net = CustomNet(joint_num)
     else:
+        print("load HeadNet")
         head_net = HeadNet(joint_num)
     if is_train:
         backbone.init_weights()
