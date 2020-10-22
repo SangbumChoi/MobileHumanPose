@@ -1,6 +1,7 @@
 import math
 import torch
 from torch import nn
+from torchvision import models
 
 def _make_divisible(v, divisor, min_value=None):
     """
@@ -125,6 +126,7 @@ class MobileNeXt(nn.Module):
 
 if __name__ == "__main__":
     model = MobileNeXt()
+    print(model)
     test_data = torch.rand(1, 3, 256, 256)
     test_outputs = model(test_data)
     print(test_outputs.size())
