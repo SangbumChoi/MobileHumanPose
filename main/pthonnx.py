@@ -40,8 +40,8 @@ def main():
     ckpt = torch.load(model_path)
     model.load_state_dict(ckpt['network'])
 
-    filename_onnx = 'output.onnx'
-    filename_tf = 'output.pb'
+    filename_onnx = 'tensorflow/output.onnx'
+    filename_tf = 'tensorflow/output.pb'
 
     torch.onnx.export(model, torch.ones(1, 3, cfg.input_shape[0], cfg.input_shape[1]), filename_onnx, input_names=['main_input'], output_names=['main_output'])
 
