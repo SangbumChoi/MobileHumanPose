@@ -10,7 +10,7 @@ import math
 import torch
 from torch import nn
 
-__all__ = ['MobileNeXt', 'mobilenext_pytorch.py']
+__all__ = ['MobileNeXt_', 'mobilenext_pytorch.py']
 
 
 def _make_divisible(v, divisor, min_value=None):
@@ -105,7 +105,7 @@ class SandGlass(nn.Module):
             return out
 
 
-class MobileNeXt(nn.Module):
+class MobileNeXt_(nn.Module):
     def __init__(self,
                  width_mult=1.0,
                  identity_tensor_multiplier=1.0,
@@ -125,7 +125,7 @@ class MobileNeXt(nn.Module):
             block: Module specifying inverted residual building block for mobilenet
             norm_layer: Module specifying the normalization layer to use
         """
-        super(MobileNeXt, self).__init__()
+        super(MobileNeXt_, self).__init__()
 
         if block is None:
             block = SandGlass
@@ -206,7 +206,7 @@ class MobileNeXt(nn.Module):
 
 
 if __name__ == "__main__":
-    model = MobileNeXt(width_mult=1.0, identity_tensor_multiplier=1.0)
+    model = MobileNeXt_(width_mult=1.0, identity_tensor_multiplier=1.0)
     # print(model)
 
     test_data = torch.rand(1, 3, 256, 256)

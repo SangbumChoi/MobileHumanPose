@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 from nets.resnet import ResNetBackbone
 from nets.mobilenext_pytorch import MobileNeXt
+from nets.mobilenext_redundentlayer import MobileNeXt_
 from config import cfg
 
 class HeadNet(nn.Module):
@@ -163,6 +164,9 @@ def get_pose_net(backbone_str, frontbone_str, is_train, joint_num):
     if backbone_str == 'mobxt':
         print("load MobileNeXt")
         backbone = MobileNeXt(width_mult=1.0)
+    elif backbone_str == 'mobxt_':
+        print("load MobileNext_")
+        backbone = MobileNeXt_(width_mult=1.0)
     else:
         print("load ResNet")
         backbone = ResNetBackbone(str)
