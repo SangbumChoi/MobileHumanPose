@@ -38,6 +38,8 @@ def main():
 
     model = get_pose_net(args.backbone, args.frontbone, True, args.joint_num)
     model = DataParallel(model).cuda()
+    if isinstance(model, torch.nn.DataParallel):
+        model = model.module
     ckpt = torch.load(model_path)
     model.load_state_dict(ckpt['network'])
 
