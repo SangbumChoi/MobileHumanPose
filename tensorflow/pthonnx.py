@@ -5,9 +5,9 @@ import os
 import onnx
 import numpy as np
 
+from config import cfg
 from torch.nn.parallel.data_parallel import DataParallel
 from model import get_pose_net
-from config import cfg
 from onnx_tf.backend import prepare
 
 def parse_args():
