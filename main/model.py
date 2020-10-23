@@ -64,41 +64,39 @@ class CustomNet(nn.Module):
 
     def __init__(self, joint_num):
         self.inplanes = 2048
+        self.hidplanes = 64
         self.outplanes = 256
 
         super(CustomNet, self).__init__()
 
-        self.deconv_layers = self._make_deconv_layer(3)
+        self.deconv_layer_1 = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.inplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=1, bias=False),
+            nn.BatchNorm2d(self.outplanes),
+            nn.ReLU(inplace=True))
+        self.deconv_layer_2 = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.outplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=self.outplanes, bias=False),
+            nn.BatchNorm2d(self.outplanes),
+            nn.ReLU(inplace=True))
+        self.deconv_layer_3 = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.outplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=self.outplanes, bias=False),
+            nn.BatchNorm2d(self.outplanes),
+            nn.ReLU(inplace=True))
         self.final_layer = nn.Conv2d(
-            in_channels=self.inplanes,
+            in_channels=self.outplanes,
             out_channels=joint_num * cfg.depth_dim,
             kernel_size=1,
             stride=1,
             padding=0
         )
 
-    def _make_deconv_layer(self, num_layers):
-        layers = []
-        for i in range(num_layers):
-            layers.append(
-                nn.ConvTranspose2d(
-                    in_channels=self.inplanes,
-                    out_channels=self.outplanes,
-                    kernel_size=4,
-                    stride=2,
-                    padding=1,
-                    output_padding=0,
-                    bias=False))
-            layers.append(nn.BatchNorm2d(self.outplanes))
-            layers.append(nn.ReLU(inplace=True))
-            self.inplanes = self.outplanes
-
-        return nn.Sequential(*layers)
-
     def forward(self, x):
-        x = self.deconv_layers(x)
+        x = self.deconv_layer_1(x)
+        x = self.deconv_layer_2(x)
+        x = self.deconv_layer_3(x)
         x = self.final_layer(x)
-
         return x
 
     def init_weights(self):
@@ -112,7 +110,6 @@ class CustomNet(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.normal_(m.weight, std=0.001)
                 nn.init.constant_(m.bias, 0)
-
 
 def soft_argmax(heatmaps, joint_num):
 
