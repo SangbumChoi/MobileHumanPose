@@ -8,8 +8,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, dest='gpu_ids')
     parser.add_argument('--continue', dest='continue_train', action='store_true')
-    parser.add_argument('--back_bone', type=str, dest='backbone')
-    parser.add_argument('--front_bone', type=str, dest='frontbone')
+    parser.add_argument('--backbone', type=str, dest='backbone')
+    parser.add_argument('--frontbone', type=str, dest='frontbone')
     args = parser.parse_args()
 
     if not args.gpu_ids:

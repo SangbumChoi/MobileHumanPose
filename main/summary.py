@@ -10,8 +10,8 @@ from model import get_pose_net
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, dest='gpu_ids')
-    parser.add_argument('--model_path', type=str, dest='model')
-    parser.add_argument('--joint_num', type=int, dest='joint')
+    parser.add_argument('--modelpath', type=str, dest='model')
+    parser.add_argument('--jointnum', type=int, dest='joint')
     parser.add_argument('--backbone', type=str, dest='backbone')
     parser.add_argument('--frontbone', type=str, dest='frontbone')
     args = parser.parse_args()

@@ -12,9 +12,9 @@ import torch.backends.cudnn as cudnn
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, dest='gpu_ids')
-    parser.add_argument('--model_path', type=str, dest='model')
-    parser.add_argument('--back_bone', type=str, dest='backbone')
-    parser.add_argument('--front_bone', type=str, dest='frontbone')
+    parser.add_argument('--modelpath', type=str, dest='model')
+    parser.add_argument('--backbone', type=str, dest='backbone')
+    parser.add_argument('--frontbone', type=str, dest='frontbone')
     args = parser.parse_args()
 
     # test gpus
