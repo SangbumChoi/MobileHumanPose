@@ -5,6 +5,7 @@ from nets.resnet import ResNetBackbone
 from nets.mobilenext_pytorch import MobileNeXt
 from nets.mobilenext_redundentlayer import MobileNeXt_
 from config import cfg
+from torchsummary import summary
 
 class HeadNet(nn.Module):
 
@@ -183,4 +184,3 @@ def get_pose_net(backbone_str, frontbone_str, is_train, joint_num):
 
     model = ResPoseNet(backbone, head_net, joint_num)
     return model
-

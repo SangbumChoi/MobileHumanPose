@@ -1,7 +1,6 @@
-import math
 import torch
 from torch import nn
-from torchvision import models
+from torchsummary import summary
 
 def _make_divisible(v, divisor, min_value=None):
     """
@@ -50,7 +49,7 @@ class SandGlass(nn.Module):
         # Residual Sub-Block 4
         layers.extend([
             nn.Conv2d(output_dim, output_dim, kernel_size=3, stride=stride, padding=1, groups=output_dim, bias=False),
-            nn.BatchNorm2d(output_dim),
+            nn.BatchNorm2d(output_dim)
         ])
         self.conv = nn.Sequential(*layers)
 
@@ -130,3 +129,4 @@ if __name__ == "__main__":
     test_data = torch.rand(1, 3, 256, 256)
     test_outputs = model(test_data)
     print(test_outputs.size())
+    summary(model, (3, 256, 256))

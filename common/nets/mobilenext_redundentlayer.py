@@ -9,6 +9,7 @@ https://github.com/pytorch/vision/blob/master/torchvision/models/mobilenet.py
 import math
 import torch
 from torch import nn
+from torchsummary import summary
 
 __all__ = ['MobileNeXt_', 'mobilenext_pytorch.py']
 
@@ -211,4 +212,5 @@ if __name__ == "__main__":
 
     test_data = torch.rand(1, 3, 256, 256)
     test_outputs = model(test_data)
+    summary(model, (3, 256, 256))
     # print(test_outputs.size())
