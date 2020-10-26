@@ -36,10 +36,10 @@ class Config:
 
     ## training config
     lr_dec_epoch = [17, 21]
-    end_epoch = 25
+    end_epoch = 10
     lr = 1e-3
     lr_dec_factor = 10
-    batch_size = 32
+    batch_size = 64
 
     ## testing config
     test_batch_size = 32
