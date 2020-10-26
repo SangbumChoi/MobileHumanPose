@@ -69,7 +69,7 @@ class Trainer(Base):
 
     def get_optimizer(self, model):
         
-        optimizer = torch.optim.SGD(model.parameters(), lr=cfg.lr)
+        optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
         return optimizer
 
     def set_lr(self, epoch):
