@@ -100,7 +100,19 @@ class CustomNet(nn.Module):
         return x
 
     def init_weights(self):
-        for name, m in self.deconv_layers.named_modules():
+        for name, m in self.deconv_layer_1.named_modules():
+            if isinstance(m, nn.ConvTranspose2d):
+                nn.init.normal_(m.weight, std=0.001)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+        for name, m in self.deconv_layer_2.named_modules():
+            if isinstance(m, nn.ConvTranspose2d):
+                nn.init.normal_(m.weight, std=0.001)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+        for name, m in self.deconv_layer_3.named_modules():
             if isinstance(m, nn.ConvTranspose2d):
                 nn.init.normal_(m.weight, std=0.001)
             elif isinstance(m, nn.BatchNorm2d):
