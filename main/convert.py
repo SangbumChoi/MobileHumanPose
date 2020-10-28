@@ -14,6 +14,7 @@ from torch.autograd import Variable
 from torchvision.models.resnet import BasicBlock, Bottleneck
 from torchvision.models.resnet import model_urls
 from torch.nn import functional as F
+from torch.nn.parallel.data_parallel import DataParallel
 
 import tensorflow as tf
 from tensorflow.keras.models import Model
@@ -788,11 +789,23 @@ class PytorchToKeras(object):
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--gpu', type=str, dest='gpu_ids')
     parser.add_argument('--joint', type=int, dest='joint')
     parser.add_argument('--modelpath', type=str, dest='modelpath')
     parser.add_argument('--backbone', type=str, dest='backbone')
     parser.add_argument('--frontbone', type=str, dest='frontbone')
     args = parser.parse_args()
+
+    # test gpus
+    if not args.gpu_ids:
+        assert 0, "Please set proper gpu ids"
+
+    if '-' in args.gpu_ids:
+        gpus = args.gpu_ids.split('-')
+        gpus[0] = int(gpus[0])
+        gpus[1] = int(gpus[1]) + 1
+        args.gpu_ids = ','.join(map(lambda x: str(x), list(range(*gpus))))
+
     return args
 
 args = parse_args()
@@ -803,13 +816,14 @@ keras_model = ResPoseNet_Tensorflow((256, 256, 3), args.joint)
 #Lucky for us, PyTorch includes a predefined Squeezenet
 print("load pytorch model for MobileNeXt")
 pytorch_model = get_pose_net(args.backbone, args.frontbone, False, args.joint)
+pytorch_model = DataParallel(pytorch_model).cuda()
 
 #Load the pretrained model
 pytorch_model.load_state_dict(torch.load(args.modelpath)['network'])
 
 #Time to transfer weights
-
-converter = PytorchToKeras(pytorch_model,keras_model)
+single_pytorch_model = pytorch_model.module
+converter = PytorchToKeras(pytorch_model, keras_model)
 converter.convert((3,256,256))
 
 #Save the weights of the converted keras model for later use
