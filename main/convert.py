@@ -7,6 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1UAtY1KFZQicKLOz_g1byzghAKmxKmbO6
 """
 import argparse
+import numpy as np
 
 import torch
 from torch import nn
@@ -725,7 +726,13 @@ class PytorchToKeras(object):
                 self.kModel.layers[target_layer].set_weights(
                     [source_layer.weight.data.cpu().numpy().transpose(transpose_dims)])
             else:
-                self.kModel.layers[target_layer].set_weights([source_layer.weight.data.cpu().numpy().transpose(transpose_dims), source_layer.bias.data.cpu().numpy()])
+                source_weight = source_layer.weight.data.cpu().numpy().transpose(transpose_dims)
+                source_layer = source_layer.bias.data.cpu().numpy()
+                if source_layer.running_mean is not None and source_layer.running_var is not None:
+                    source_running_mean = source_layer.running_mean.data.cpu().numpy()
+                    source_running_var = source_layer.running_var.data.cpu().numpy()
+                    source_layer = np.concatenate((source_layer, source_running_mean, source_running_var))
+                self.kModel.layers[target_layer].set_weights([source_weight, source_layer])
 
     def save_model(self,output_file):
         self.kModel.save(output_file)
