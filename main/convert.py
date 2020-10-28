@@ -451,7 +451,7 @@ def _conv_block(inputs, filters, kernel, strides):
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
 
     x = Conv2D(filters, kernel, padding='same', strides=strides)(inputs)
-    x = BatchNormalization(axis=channel_axis)(x)
+    x = BatchNormalization(axis=channel_axis, eps=1e-05, momentum=0.1)(x)
     return Activation(relu6)(x)
 
 
@@ -481,16 +481,16 @@ def _bottleneck(inputs, filters, kernel, t, alpha, s, r=False):
     cchannel = int(filters * alpha)
 
     x = DepthwiseConv2D(kernel, strides=(1, 1), depth_multiplier=1, padding='same')(inputs)
-    x = BatchNormalization(axis=channel_axis)(x)
+    x = BatchNormalization(axis=channel_axis, eps=1e-05, momentum=0.1)(x)
     x = Activation(relu6)(x)
 
     x = Conv2D(tchannel, (1, 1), strides=(1, 1), padding='same')(x)
-    x = BatchNormalization(axis=channel_axis)(x)
+    x = BatchNormalization(axis=channel_axis, eps=1e-05, momentum=0.1)(x)
 
     x = _conv_block(x, cchannel, (1, 1), (1, 1))
 
     x = DepthwiseConv2D(kernel, strides=(s, s), depth_multiplier=1, padding='same')(x)
-    x = BatchNormalization(axis=channel_axis)(x)
+    x = BatchNormalization(axis=channel_axis, eps=1e-05, momentum=0.1)(x)
 
     if r:
         x = Add()([x, inputs])
@@ -544,7 +544,7 @@ def conv_block(inputs, filters, kernel, strides):
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
 
     x = Conv2D(filters, kernel, strides=strides, padding='same', use_bias=False)(inputs)
-    x = BatchNormalization(axis=channel_axis)(x)
+    x = BatchNormalization(axis=channel_axis, eps=1e-05, momentum=0.1)(x)
     return Activation(relu6)(x)
 
 
@@ -574,16 +574,16 @@ def bottleneck(inputs, filters, kernel, t, alpha, s, r=False):
     cchannel = int(filters * alpha)
 
     x = DepthwiseConv2D(kernel, strides=(1, 1), depth_multiplier=1, padding='same', use_bias=False)(inputs)
-    x = BatchNormalization(axis=channel_axis)(x)
+    x = BatchNormalization(axis=channel_axis, eps=1e-05, momentum=0.1)(x)
     x = Activation(relu6)(x)
 
     x = Conv2D(tchannel, (1, 1), strides=(1, 1), padding='same', use_bias=False)(x)
-    x = BatchNormalization(axis=channel_axis)(x)
+    x = BatchNormalization(axis=channel_axis, eps=1e-05, momentum=0.1)(x)
 
     x = conv_block(x, cchannel, (1, 1), (1, 1))
 
     x = DepthwiseConv2D(kernel, strides=(s, s), depth_multiplier=1, padding='same', use_bias=False)(x)
-    x = BatchNormalization(axis=channel_axis)(x)
+    x = BatchNormalization(axis=channel_axis, eps=1e-05, momentum=0.1)(x)
 
     if r:
         x = Add()([x, inputs])
@@ -594,7 +594,7 @@ def deconv_layer(inputs, filters, kernel, strides):
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
 
     x = Conv2DTranspose(filters=filters, kernel_size=kernel, strides=strides, padding='same', use_bias=False)(inputs)
-    x = BatchNormalization(axis=channel_axis)(x)
+    x = BatchNormalization(axis=channel_axis, eps=1e-05, momentum=0.1)(x)
     return Activation(relu6)(x)
 
 def soft_argmax_tensorflow(heatmaps, joint_num):
@@ -721,7 +721,11 @@ class PytorchToKeras(object):
             for i in range(weight_size):
                 transpose_dims.append(weight_size - i - 1)
 
-            self.kModel.layers[target_layer].set_weights([source_layer.weight.data.numpy().transpose(transpose_dims), source_layer.bias.data.numpy()])
+            if source_layer.bias == None:
+                self.kModel.layers[target_layer].set_weights(
+                    [source_layer.weight.data.cpu().numpy().transpose(transpose_dims)])
+            else:
+                self.kModel.layers[target_layer].set_weights([source_layer.weight.data.cpu().numpy().transpose(transpose_dims), source_layer.bias.data.cpu().numpy()])
 
     def save_model(self,output_file):
         self.kModel.save(output_file)
