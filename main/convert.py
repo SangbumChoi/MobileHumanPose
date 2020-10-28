@@ -34,8 +34,6 @@ class cfg:
     pixel_mean = (0.485, 0.456, 0.406)
     pixel_std = (0.229, 0.224, 0.225)
 
-"""# Pytorch MobileNeXt"""
-
 def _make_divisible(v, divisor, min_value=None):
     """
     This function is taken from the original tf repo.
@@ -51,6 +49,7 @@ def _make_divisible(v, divisor, min_value=None):
         new_v += divisor
     return new_v
 
+"""# Pytorch MobileNeXt"""
 class SandGlass(nn.Module):
     def __init__(self, input_dim, output_dim, stride, t):
         super(SandGlass, self).__init__()
@@ -157,7 +156,7 @@ class MobileNeXt(nn.Module):
         x = self.sandglass_conv(x)
         return x
 
-"""# Pytorch ResNet"""
+"""# Pytorch ResPoseNet"""
 
 class ResNetBackbone(nn.Module):
 
@@ -228,8 +227,6 @@ class ResNetBackbone(nn.Module):
         org_resnet.pop('fc.bias', None)
         self.load_state_dict(org_resnet)
         print("Initialize resnet from model zoo")
-
-"""# Pytorch ResPoseNet"""
 
 class HeadNet(nn.Module):
 
@@ -351,7 +348,7 @@ class CustomNet(nn.Module):
                 nn.init.normal_(m.weight, std=0.001)
                 nn.init.constant_(m.bias, 0)
 
-def soft_argmax(heatmaps, joint_num):
+def soft_argmax_pytorch(heatmaps, joint_num):
 
     print("before", heatmaps.size())
     heatmaps = heatmaps.reshape((-1, joint_num, cfg.depth_dim*cfg.output_shape[0]*cfg.output_shape[1]))
@@ -365,9 +362,9 @@ def soft_argmax(heatmaps, joint_num):
     accu_z = heatmaps.sum(dim=(3,4))
     print("acc", accu_x.size(), accu_y.size(), accu_z.size())
 
-    # accu_x = accu_x * torch.cuda.comm.broadcast(torch.arange(1,cfg.output_shape[1]+1).type(torch.cuda.FloatTensor), devices=[accu_x.device.index])[0]
-    # accu_y = accu_y * torch.cuda.comm.broadcast(torch.arange(1,cfg.output_shape[0]+1).type(torch.cuda.FloatTensor), devices=[accu_y.device.index])[0]
-    # accu_z = accu_z * torch.cuda.comm.broadcast(torch.arange(1,cfg.depth_dim+1).type(torch.cuda.FloatTensor), devices=[accu_z.device.index])[0]
+    accu_x = accu_x * torch.cuda.comm.broadcast(torch.arange(1,cfg.output_shape[1]+1).type(torch.cuda.FloatTensor), devices=[accu_x.device.index])[0]
+    accu_y = accu_y * torch.cuda.comm.broadcast(torch.arange(1,cfg.output_shape[0]+1).type(torch.cuda.FloatTensor), devices=[accu_y.device.index])[0]
+    accu_z = accu_z * torch.cuda.comm.broadcast(torch.arange(1,cfg.depth_dim+1).type(torch.cuda.FloatTensor), devices=[accu_z.device.index])[0]
 
     print('accu_x', accu_x)
 
@@ -379,9 +376,9 @@ def soft_argmax(heatmaps, joint_num):
 
     return coord_out
 
-class ResPoseNet(nn.Module):
+class ResPoseNet_PyTorch(nn.Module):
     def __init__(self, backbone, head, joint_num):
-        super(ResPoseNet, self).__init__()
+        super(ResPoseNet_PyTorch, self).__init__()
         self.backbone = backbone
         self.head = head
         self.joint_num = joint_num
@@ -390,7 +387,7 @@ class ResPoseNet(nn.Module):
         fm = self.backbone(input_img)
         print(fm.size())
         hm = self.head(fm)
-        coord = soft_argmax(hm, self.joint_num)
+        coord = soft_argmax_pytorch(hm, self.joint_num)
         
         if target is None:
             return coord
@@ -426,26 +423,14 @@ def get_pose_net(backbone_str, frontbone_str, is_train, joint_num):
         backbone.init_weights()
         head_net.init_weights()
 
-    model = ResPoseNet(backbone, head_net, joint_num)
+    model = ResPoseNet_PyTorch(backbone, head_net, joint_num)
     return model
 
 """# Tensorflow MobileNeXt"""
-
-def _make_divisible(v, divisor, min_value=None):
-    if min_value is None:
-        min_value = divisor
-    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
-    # Make sure that round down does not go down by more than 10%.
-    if new_v < 0.9 * v:
-        new_v += divisor
-    return new_v
-
-
 def relu6(x):
     """Relu 6
     """
     return K.relu(x, max_value=6.0)
-
 
 def _conv_block(inputs, filters, kernel, strides):
     """Convolution Block
@@ -539,23 +524,7 @@ def _sand_glass_block(inputs, filters, kernel, t, alpha, strides, n):
 
     return x
 
-"""# Tensorflow ResPoseNet"""
-
-def _make_divisible(v, divisor, min_value=None):
-    if min_value is None:
-        min_value = divisor
-    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
-    # Make sure that round down does not go down by more than 10%.
-    if new_v < 0.9 * v:
-        new_v += divisor
-    return new_v
-
-def relu6(x):
-    """Relu 6
-    """
-    return K.relu(x, max_value=6.0)
-
-
+"""Tensorflow ResPoseNet"""
 def conv_block(inputs, filters, kernel, strides):
     """Convolution Block
     This function defines a 2D convolution operation with BN and relu6.
@@ -628,34 +597,7 @@ def deconv_layer(inputs, filters, kernel, strides):
     x = BatchNormalization(axis=channel_axis)(x)
     return Activation(relu6)(x)
 
-
-def _sand_glass_block(inputs, filters, kernel, t, alpha, strides, n):
-    """Inverted Residual Block
-    This function defines a sequence of 1 or more identical layers.
-    # Arguments
-        inputs: Tensor, input tensor of conv layer.
-        filters: Integer, the dimensionality of the output space.
-        kernel: An integer or tuple/list of 2 integers, specifying the
-            width and height of the 2D convolution window.
-        t: Integer, expansion factor.
-            t is always applied to the input size.
-        alpha: Integer, width multiplier.
-        s: An integer or tuple/list of 2 integers,specifying the strides
-            of the convolution along the width and height.Can be a single
-            integer to specify the same value for all spatial dimensions.
-        n: Integer, layer repeat times.
-    # Returns
-        Output tensor.
-    """
-
-    x = bottleneck(inputs, filters, kernel, t, alpha, strides)
-
-    for i in range(1, n):
-        x = bottleneck(x, filters, kernel, t, alpha, 1, True)
-
-    return x
-
-def soft_argmax(heatmaps, joint_num):
+def soft_argmax_tensorflow(heatmaps, joint_num):
     print("before", heatmaps.shape)
     heatmaps = tf.reshape(heatmaps, [-1, joint_num, cfg.depth_dim*cfg.output_shape[0]*cfg.output_shape[1]])
     print("after", heatmaps.shape)
@@ -709,8 +651,7 @@ def ResPoseNet_Tensorflow(input_shape, joint_num, target=None, alpha=1.0):
     x = Conv2D(out_channels, 1, 1, padding='same')(x)
     print("coord x", x.shape)
 
-    coord = soft_argmax(x, joint_num)
-
+    coord = soft_argmax_tensorflow(x, joint_num)
 
     if target is None:
         return Model(inputs, coord)
@@ -725,7 +666,7 @@ def ResPoseNet_Tensorflow(input_shape, joint_num, target=None, alpha=1.0):
 
         return Model(inputs, loss_coord)
 
-"""# convert"""
+"""convert"""
 
 class PytorchToKeras(object):
     def __init__(self,pModel,kModel):
