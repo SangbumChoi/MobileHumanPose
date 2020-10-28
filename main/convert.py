@@ -594,7 +594,7 @@ def deconv_layer(inputs, filters, kernel, strides):
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
 
     x = Conv2DTranspose(filters=filters, kernel_size=kernel, strides=strides, padding='same', use_bias=False)(inputs)
-    x = BatchNormalization(axis=channel_axis, eps=1e-05, momentum=0.1)(x)
+    x = BatchNormalization(axis=channel_axis, epsilon=1e-05, momentum=0.1)(x)
     return Activation(relu6)(x)
 
 def soft_argmax_tensorflow(heatmaps, joint_num):
