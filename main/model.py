@@ -179,7 +179,7 @@ def get_pose_net(backbone_str, frontbone_str, is_train, joint_num):
         backbone = MobileNeXt_(width_mult=1.0)
     else:
         print("load ResNet")
-        backbone = ResNetBackbone(str)
+        backbone = ResNetBackbone(backbone_str)
 
     if frontbone_str == 'custom':
         print("load CustomNet")
