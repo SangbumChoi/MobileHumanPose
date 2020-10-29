@@ -599,17 +599,13 @@ def deconv_layer(inputs, filters, kernel, strides):
     return Activation(relu6)(x)
 
 def soft_argmax_tensorflow(heatmaps, joint_num):
-    print("before", heatmaps.shape)
     heatmaps = tf.reshape(heatmaps, [-1, joint_num, cfg.depth_dim*cfg.output_shape[0]*cfg.output_shape[1]])
-    print("after", heatmaps.shape)
     heatmaps = tf.nn.softmax(heatmaps, 2)
     heatmaps = tf.reshape(heatmaps, [-1, joint_num, cfg.depth_dim, cfg.output_shape[0], cfg.output_shape[1]])
-    print("done", heatmaps.shape)
 
     accu_x = tf.reduce_sum(heatmaps, axis=[2,3])
     accu_y = tf.reduce_sum(heatmaps, axis=[2,4])
     accu_z = tf.reduce_sum(heatmaps, axis=[3,4])
-    print("acc", accu_x.shape)
 
     # similiar concept to Expectation
     accu_x = accu_x * tf.convert_to_tensor(tf.range(1,cfg.output_shape[1]+1, dtype=float))[0]
@@ -628,9 +624,7 @@ def ResPoseNet_Tensorflow(input_shape, joint_num, target=None, alpha=1.0):
     inputs = Input(shape=input_shape)
 
     first_filters = _make_divisible(32 * alpha, 8)
-    print("input shape", inputs.shape)
     x = conv_block(inputs, first_filters, (3, 3), strides=(2, 2))
-    print("after first conv", x.shape)
 
     x = _sand_glass_block(x, 96, (3, 3), t=2, alpha=alpha, strides=2, n=1)
     x = _sand_glass_block(x, 144, (3, 3), t=6, alpha=alpha, strides=1, n=1)
@@ -641,16 +635,14 @@ def ResPoseNet_Tensorflow(input_shape, joint_num, target=None, alpha=1.0):
     x = _sand_glass_block(x, 960, (3, 3), t=6, alpha=alpha, strides=1, n=2)
     x = _sand_glass_block(x, 2048, (3, 3), t=6, alpha=alpha, strides=1, n=1)
     outplanes = 256
-    print("initial x", x.shape)
+
     x = deconv_layer(x, outplanes, (4,4), (2,2))
-    print("first x", x.shape)
     x = deconv_layer(x, outplanes, (4,4), (2,2))
     x = deconv_layer(x, outplanes, (4,4), (2,2))
 
     out_channels = joint_num * cfg.depth_dim
 
     x = Conv2D(out_channels, 1, 1, padding='same')(x)
-    print("coord x", x.shape)
 
     coord = soft_argmax_tensorflow(x, joint_num)
 
@@ -714,7 +706,8 @@ class PytorchToKeras(object):
         self.__retrieve_p_layers(input_size)
 
         for i,(source_layer,target_layer) in enumerate(zip(self.__source_layers,self.__target_layers)):
-
+            print("source", source_layer)
+            print("target", target_layer)
             weight_size = len(source_layer.weight.data.size())
 
             transpose_dims = []
