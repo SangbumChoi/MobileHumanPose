@@ -316,13 +316,9 @@ class CustomNet(nn.Module):
 
     def forward(self, x):
         x = self.deconv_layer_1(x)
-        print(x.size())
         x = self.deconv_layer_2(x)
-        print(x.size())
         x = self.deconv_layer_3(x)
-        print(x.size())
         x = self.final_layer(x)
-        print(x.size())
         return x
 
     def init_weights(self):
@@ -351,23 +347,17 @@ class CustomNet(nn.Module):
 
 def soft_argmax_pytorch(heatmaps, joint_num):
 
-    print("before", heatmaps.size())
     heatmaps = heatmaps.reshape((-1, joint_num, cfg.depth_dim*cfg.output_shape[0]*cfg.output_shape[1]))
-    print("after", heatmaps.size())
     heatmaps = F.softmax(heatmaps, 2)
     heatmaps = heatmaps.reshape((-1, joint_num, cfg.depth_dim, cfg.output_shape[0], cfg.output_shape[1]))
-    print("done", heatmaps.size())
 
     accu_x = heatmaps.sum(dim=(2,3))
     accu_y = heatmaps.sum(dim=(2,4))
     accu_z = heatmaps.sum(dim=(3,4))
-    print("acc", accu_x.size(), accu_y.size(), accu_z.size())
 
     accu_x = accu_x * torch.cuda.comm.broadcast(torch.arange(1,cfg.output_shape[1]+1).type(torch.cuda.FloatTensor), devices=[accu_x.device.index])[0]
     accu_y = accu_y * torch.cuda.comm.broadcast(torch.arange(1,cfg.output_shape[0]+1).type(torch.cuda.FloatTensor), devices=[accu_y.device.index])[0]
     accu_z = accu_z * torch.cuda.comm.broadcast(torch.arange(1,cfg.depth_dim+1).type(torch.cuda.FloatTensor), devices=[accu_z.device.index])[0]
-
-    print('accu_x', accu_x)
 
     accu_x = accu_x.sum(dim=2, keepdim=True) -1
     accu_y = accu_y.sum(dim=2, keepdim=True) -1
@@ -386,7 +376,6 @@ class ResPoseNet_PyTorch(nn.Module):
 
     def forward(self, input_img, target=None):
         fm = self.backbone(input_img)
-        print(fm.size())
         hm = self.head(fm)
         coord = soft_argmax_pytorch(hm, self.joint_num)
         
@@ -433,29 +422,6 @@ def relu6(x):
     """
     return K.relu(x, max_value=6.0)
 
-def _conv_block(inputs, filters, kernel, strides):
-    """Convolution Block
-    This function defines a 2D convolution operation with BN and relu6.
-    # Arguments
-        inputs: Tensor, input tensor of conv layer.
-        filters: Integer, the dimensionality of the output space.
-        kernel: An integer or tuple/list of 2 integers, specifying the
-            width and height of the 2D convolution window.
-        strides: An integer or tuple/list of 2 integers,
-            specifying the strides of the convolution along the width and height.
-            Can be a single integer to specify the same value for
-            all spatial dimensions.
-    # Returns
-        Output tensor.
-    """
-
-    channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
-
-    x = Conv2D(filters, kernel, padding='same', strides=strides)(inputs)
-    x = BatchNormalization(axis=channel_axis, epsilon=1e-05, momentum=0.1)(x)
-    return Activation(relu6)(x)
-
-
 def _bottleneck(inputs, filters, kernel, t, alpha, s, r=False):
     """Bottleneck
     This function defines a basic bottleneck structure.
@@ -475,29 +441,33 @@ def _bottleneck(inputs, filters, kernel, t, alpha, s, r=False):
         Output tensor.
     """
 
+
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
+    # Input
+    ichannel = K.int_shape(inputs)[channel_axis]
     # Depth
     tchannel = K.int_shape(inputs)[channel_axis] // t
     # Width
     cchannel = int(filters * alpha)
 
-    x = DepthwiseConv2D(kernel, strides=(1, 1), depth_multiplier=1, padding='same')(inputs)
-    x = BatchNormalization(axis=channel_axis, epsilon=1e-05, momentum=0.1)(x)
+    x = Conv2D(filters=ichannel, kernel_size=kernel, strides=(1, 1), padding='same', groups=ichannel, use_bias=False)(inputs)
+    x = BatchNormalization(axis=channel_axis)(x)
     x = Activation(relu6)(x)
 
-    x = Conv2D(tchannel, (1, 1), strides=(1, 1), padding='same')(x)
-    x = BatchNormalization(axis=channel_axis, epsilon=1e-05, momentum=0.1)(x)
+    x = Conv2D(filters=tchannel, kernel_size=(1, 1), strides=(1, 1), padding='same', groups=1, use_bias=False)(x)
+    x = BatchNormalization(axis=channel_axis)(x)
 
-    x = _conv_block(x, cchannel, (1, 1), (1, 1))
+    x = Conv2D(filters=cchannel, kernel_size=(1, 1), strides=(1, 1), padding='same', groups=1, use_bias=False)(x)
+    x = BatchNormalization(axis=channel_axis)(x)
+    x= Activation(relu6)(x)
 
-    x = DepthwiseConv2D(kernel, strides=(s, s), depth_multiplier=1, padding='same')(x)
-    x = BatchNormalization(axis=channel_axis, epsilon=1e-05, momentum=0.1)(x)
+    x = Conv2D(filters=cchannel, kernel_size=kernel, strides=(s, s), padding='same', groups=cchannel, use_bias=False)(x)
+    x = BatchNormalization(axis=channel_axis)(x)
 
     if r:
         x = Add()([x, inputs])
 
     return x
-
 
 def _sand_glass_block(inputs, filters, kernel, t, alpha, strides, n):
     """Inverted Residual Block
@@ -547,49 +517,6 @@ def conv_block(inputs, filters, kernel, strides):
     x = Conv2D(filters, kernel, strides=strides, padding='same', use_bias=False)(inputs)
     x = BatchNormalization(axis=channel_axis, epsilon=1e-05, momentum=0.1)(x)
     return Activation(relu6)(x)
-
-
-def bottleneck(inputs, filters, kernel, t, alpha, s, r=False):
-    """Bottleneck
-    This function defines a basic bottleneck structure.
-    # Arguments
-        inputs: Tensor, input tensor of conv layer.
-        filters: Integer, the dimensionality of the output space.
-        kernel: An integer or tuple/list of 2 integers, specifying the
-            width and height of the 2D convolution window.
-        t: Integer, expansion factor.
-            t is always applied to the input size.
-        s: An integer or tuple/list of 2 integers,specifying the strides
-            of the convolution along the width and height.Can be a single
-            integer to specify the same value for all spatial dimensions.
-        alpha: Integer, width multiplier.
-        r: Boolean, Whether to use the residuals.
-    # Returns
-        Output tensor.
-    """
-
-    channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
-    # Depth
-    tchannel = K.int_shape(inputs)[channel_axis] // t
-    # Width
-    cchannel = int(filters * alpha)
-
-    x = DepthwiseConv2D(kernel, strides=(1, 1), depth_multiplier=1, padding='same', use_bias=False)(inputs)
-    x = BatchNormalization(axis=channel_axis, epsilon=1e-05, momentum=0.1)(x)
-    x = Activation(relu6)(x)
-
-    x = Conv2D(tchannel, (1, 1), strides=(1, 1), padding='same', use_bias=False)(x)
-    x = BatchNormalization(axis=channel_axis, epsilon=1e-05, momentum=0.1)(x)
-
-    x = conv_block(x, cchannel, (1, 1), (1, 1))
-
-    x = DepthwiseConv2D(kernel, strides=(s, s), depth_multiplier=1, padding='same', use_bias=False)(x)
-    x = BatchNormalization(axis=channel_axis, epsilon=1e-05, momentum=0.1)(x)
-
-    if r:
-        x = Add()([x, inputs])
-
-    return x
 
 def deconv_layer(inputs, filters, kernel, strides):
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
