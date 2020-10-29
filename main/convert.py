@@ -514,7 +514,7 @@ def conv_block(inputs, filters, kernel, strides):
 
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
 
-    x = Conv2D(filters, kernel, strides=strides, padding='same', use_bias=False)(inputs)
+    x = Conv2D(filters, kernel_size=kernel, strides=strides, padding='same', use_bias=False)(inputs)
     x = BatchNormalization(axis=channel_axis, epsilon=1e-05, momentum=0.1)(x)
     return Activation(relu6)(x)
 
@@ -563,13 +563,13 @@ def ResPoseNet_Tensorflow(input_shape, joint_num, target=None, alpha=1.0):
     x = _sand_glass_block(x, 2048, (3, 3), t=6, alpha=alpha, strides=1, n=1)
     outplanes = 256
 
-    x = deconv_layer(x, outplanes, (4,4), (2,2))
-    x = deconv_layer(x, outplanes, (4,4), (2,2))
-    x = deconv_layer(x, outplanes, (4,4), (2,2))
+    x = deconv_layer(x, outplanes, (4, 4), (2, 2))
+    x = deconv_layer(x, outplanes, (4, 4), (2, 2))
+    x = deconv_layer(x, outplanes, (4, 4), (2, 2))
 
     out_channels = joint_num * cfg.depth_dim
 
-    x = Conv2D(out_channels, 1, 1, padding='same')(x)
+    x = Conv2D(filters=out_channels, kernel_size=(1, 1), strides=(1, 1), padding='same')(x)
 
     coord = soft_argmax_tensorflow(x, joint_num)
 
@@ -648,7 +648,7 @@ class PytorchToKeras(object):
             else:
                 source_weight_cpu = source_layer.weight.data.cpu().numpy().transpose(transpose_dims)
                 source_layer_cpu = source_layer.bias.data.cpu().numpy()
-                if source_layer.running_mean is not None and source_layer.running_var is not None:
+                if hasattr(source_layer, 'running_mean') and hasattr(source_layer, 'running_var'):
                     source_running_mean = source_layer.running_mean.cpu().numpy()
                     source_running_var = source_layer.running_var.cpu().numpy()
                     self.kModel.layers[target_layer].set_weights([source_weight_cpu, source_layer_cpu, source_running_mean, source_running_var])
