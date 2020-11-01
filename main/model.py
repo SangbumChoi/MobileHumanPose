@@ -4,6 +4,8 @@ from torch.nn import functional as F
 from nets.resnet import ResNetBackbone
 from nets.mobilenext_pytorch import MobileNeXt
 from nets.mobilenext_redundentlayer import MobileNeXt_
+from nets.mobilenetv2_pytorch import MobileNetV2
+from nets.mobileposenet_pytorch import MobilePoseNet
 from config import cfg
 from torchsummary import summary
 
@@ -71,12 +73,12 @@ class CustomNet(nn.Module):
 
         self.deconv_layer_1 = nn.Sequential(
             nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(in_channels=self.inplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=1, bias=False),
-            nn.BatchNorm2d(self.outplanes),
+            nn.Conv2d(in_channels=self.inplanes, out_channels=self.hidplanes, kernel_size=3, stride=1, padding=1, groups=1, bias=False),
+            nn.BatchNorm2d(self.hidplanes),
             nn.ReLU(inplace=True))
         self.deconv_layer_2 = nn.Sequential(
             nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(in_channels=self.outplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=self.outplanes, bias=False),
+            nn.Conv2d(in_channels=self.hidplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=self.hidplanes, bias=False),
             nn.BatchNorm2d(self.outplanes),
             nn.ReLU(inplace=True))
         self.deconv_layer_3 = nn.Sequential(
@@ -177,6 +179,12 @@ def get_pose_net(backbone_str, frontbone_str, is_train, joint_num):
     elif backbone_str == 'mobxt_':
         print("load MobileNext_")
         backbone = MobileNeXt_(width_mult=1.0)
+    elif backbone_str == 'mobv2':
+        print("load MobileNetV2")
+        backbone = MobileNetV2()
+    elif backbone_str == 'mobpose':
+        print("load MobilePoseNet")
+        backbone = MobilePoseNet(attention='cbam')
     else:
         print("load ResNet")
         backbone = ResNetBackbone(backbone_str)

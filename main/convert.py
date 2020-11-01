@@ -548,10 +548,16 @@ def soft_argmax_tensorflow(heatmaps, joint_num):
     return coord_out
 
 def ResPoseNet_Tensorflow(input_shape, joint_num, target=None, alpha=1.0):
+
+    channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
+
     inputs = Input(shape=input_shape)
 
     first_filters = _make_divisible(32 * alpha, 8)
-    x = conv_block(inputs, first_filters, (3, 3), strides=(2, 2))
+
+    x = Conv2D(first_filters, kernel_size=(3, 3), strides=(2, 2), padding='same', use_bias=False)(inputs)
+    x = BatchNormalization(axis=channel_axis, epsilon=1e-05, momentum=0.1)(x)
+    x = Activation(relu6)(x)
 
     x = _sand_glass_block(x, 96, (3, 3), t=2, alpha=alpha, strides=2, n=1)
     x = _sand_glass_block(x, 144, (3, 3), t=6, alpha=alpha, strides=1, n=1)
@@ -574,7 +580,7 @@ def ResPoseNet_Tensorflow(input_shape, joint_num, target=None, alpha=1.0):
     coord = soft_argmax_tensorflow(x, joint_num)
 
     if target is None:
-        return Model(inputs, coord)
+        return Model(inputs, outputs = coord)
     else:
         target_coord = target['coord']
         target_vis = target['vis']
@@ -584,7 +590,7 @@ def ResPoseNet_Tensorflow(input_shape, joint_num, target=None, alpha=1.0):
         loss_coord = tf.abs(coord - target_coord) * target_vis
         loss_coord = (loss_coord[:, :, 0] + loss_coord[:, :, 1] + loss_coord[:, :, 2] * target_have_depth) / 3.
 
-        return Model(inputs, loss_coord)
+        return Model(inputs, outputs = loss_coord)
 
 """convert"""
 
@@ -701,4 +707,5 @@ converter.convert((3,256,256))
 
 #Save the weights of the converted keras model for later use
 converter.save_weights("baseline.h5")
+converter.save_model("baseline")
 
