@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from collections import namedtuple
 import math
-from common import ECA_Layer, SEBlock, CbamBlock, GCT
+from .common import ECA_Layer, SEBlock, CbamBlock, GCT
 from torchsummary import summary
 
 
