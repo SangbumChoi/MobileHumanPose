@@ -23,7 +23,8 @@ def parse_args():
     parser.add_argument('--gpu', type=str, dest='gpu_ids')
     parser.add_argument('--model_path', type=str, dest='model')
     parser.add_argument('--input_image', type=str, dest='image')
-    parser.add_argument('--baseline', type=str, dest='baseline')
+    parser.add_argument('--backbone', type=str, dest='backbone')
+    parser.add_argument('--frontbone', type=str, dest='frontbone')
     args = parser.parse_args()
 
     # test gpus
@@ -54,7 +55,7 @@ skeleton = ( (0, 7), (7, 8), (8, 9), (9, 10), (8, 11), (11, 12), (12, 13), (8, 1
 model_path = args.model
 assert osp.exists(model_path), 'Cannot find model at ' + model_path
 # print('Load checkpoint from {}'.format(model_path))
-model = get_pose_net(args.baseline, False, joint_num)
+model = get_pose_net(args.backbone, args.frontbone, False, joint_num)
 model = DataParallel(model).cuda()
 # print("after DataParallel", model)
 ckpt = torch.load(model_path)
