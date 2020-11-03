@@ -355,9 +355,9 @@ def soft_argmax_pytorch(heatmaps, joint_num):
     accu_y = heatmaps.sum(dim=(2,4))
     accu_z = heatmaps.sum(dim=(3,4))
 
-    accu_x = accu_x * torch.cuda.comm.broadcast(torch.arange(1,cfg.output_shape[1]+1).type(torch.cuda.FloatTensor), devices=[accu_x.device.index])[0]
-    accu_y = accu_y * torch.cuda.comm.broadcast(torch.arange(1,cfg.output_shape[0]+1).type(torch.cuda.FloatTensor), devices=[accu_y.device.index])[0]
-    accu_z = accu_z * torch.cuda.comm.broadcast(torch.arange(1,cfg.depth_dim+1).type(torch.cuda.FloatTensor), devices=[accu_z.device.index])[0]
+    accu_x = accu_x * torch.nn.parallel.comm.broadcast(torch.arange(1,cfg.output_shape[1]+1).type(torch.cuda.FloatTensor), devices=[accu_x.device.index])[0]
+    accu_y = accu_y * torch.nn.parallel.comm.broadcast(torch.arange(1,cfg.output_shape[0]+1).type(torch.cuda.FloatTensor), devices=[accu_y.device.index])[0]
+    accu_z = accu_z * torch.nn.parallel.comm.broadcast(torch.arange(1,cfg.depth_dim+1).type(torch.cuda.FloatTensor), devices=[accu_z.device.index])[0]
 
     accu_x = accu_x.sum(dim=2, keepdim=True) -1
     accu_y = accu_y.sum(dim=2, keepdim=True) -1
@@ -648,10 +648,18 @@ class PytorchToKeras(object):
             for i in range(weight_size):
                 transpose_dims.append(weight_size - i - 1)
 
+            print("transpose", transpose_dims)
+            print("weight size", weight_size)
+            print("kModel weight size", self.kModel.layers[target_layer].weights[0].shape)
+            print("pModel weight size", source_layer.weight.data.cpu().numpy().transpose(transpose_dims).shape)
+
             if source_layer.bias == None:
                 self.kModel.layers[target_layer].set_weights(
                     [source_layer.weight.data.cpu().numpy().transpose(transpose_dims)])
             else:
+                print("k,pModel bias", source_layer.bias.data.cpu().numpy().shape)
+                print("kModel bias", self.kModel.layers[target_layer].weights[1].shape)
+
                 source_weight_cpu = source_layer.weight.data.cpu().numpy().transpose(transpose_dims)
                 source_layer_cpu = source_layer.bias.data.cpu().numpy()
                 if hasattr(source_layer, 'running_mean') and hasattr(source_layer, 'running_var'):
@@ -706,6 +714,11 @@ converter = PytorchToKeras(pytorch_model, keras_model)
 converter.convert((3,256,256))
 
 #Save the weights of the converted keras model for later use
+<<<<<<< HEAD
+converter.save_weights("../output/baseline.h5")
+=======
 converter.save_weights("baseline.h5")
 converter.save_model("baseline")
+>>>>>>> a7182ae38047003b909eda6445073ce16851add2
 
+converter.save_model("../output/baseline")
