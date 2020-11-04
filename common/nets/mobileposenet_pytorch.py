@@ -1,10 +1,7 @@
-from torch.nn import Linear, Conv2d, BatchNorm1d, BatchNorm2d, PReLU, ReLU, Sigmoid, Dropout2d, Dropout, AvgPool2d, \
-    MaxPool2d, AdaptiveAvgPool2d, Sequential, Module, Parameter
-import torch.nn.functional as F
+from torch.nn import Linear, Conv2d, BatchNorm2d, PReLU, ReLU, Sigmoid, Dropout2d, Dropout, AvgPool2d, \
+    Sequential, Module
 import torch
 import torch.nn as nn
-from collections import namedtuple
-import math
 from .common import ECA_Layer, SEBlock, CbamBlock, GCT
 from torchsummary import summary
 
@@ -112,9 +109,9 @@ class MobilePoseNet(Module):
         self.conv_5 = Residual(hid_three_channel, attention, num_block=2, groups=hid_three_channel, kernel=(3, 3), stride=(1, 1), padding=(1, 1))
         self.conv_6_sep = Conv_block(hid_three_channel, out_channel, kernel=(1, 1), stride=(1, 1), padding=(0, 0))
 
-        self._initialize_weights()
+        self.init_weights()
 
-    def _initialize_weights(self):
+    def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
