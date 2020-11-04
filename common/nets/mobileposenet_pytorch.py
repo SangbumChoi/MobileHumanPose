@@ -100,11 +100,11 @@ class MobilePoseNet(Module):
         out_channel = 2048
 
         self.conv1 = Conv_block(3, init_channel, kernel=(3, 3), stride=(2, 2), padding=(1, 1))
-        self.conv2_dw = Conv_block(init_channel, init_channel, kernel=(3, 3), stride=(1, 1), padding=(1, 1), groups=init_channel)
+        self.conv2_dw = Conv_block(init_channel, init_channel, kernel=(3, 3), stride=(2, 2), padding=(1, 1), groups=init_channel)
         self.conv_23 = Depth_Wise(init_channel, hid_one_channel, attention, kernel=(3, 3), stride=(2, 2), padding=(1, 1), groups=hid_one_channel)
         self.conv_3 = Residual(hid_one_channel, attention, num_block=4, groups=hid_one_channel, kernel=(3, 3), stride=(1, 1), padding=(1, 1))
         self.conv_34 = Depth_Wise(hid_one_channel, hid_two_channel, attention, kernel=(3, 3), stride=(2, 2), padding=(1, 1), groups=hid_two_channel)
-        self.conv_4 = Residual(hid_two_channel, attention, num_block=6, groups=hid_two_channel, kernel=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.conv_4 = Residual(hid_two_channel, attention, num_block=4, groups=hid_two_channel, kernel=(3, 3), stride=(1, 1), padding=(1, 1))
         self.conv_45 = Depth_Wise(hid_two_channel, hid_three_channel, attention, kernel=(3, 3), stride=(2, 2), padding=(1, 1), groups=hid_three_channel)
         self.conv_5 = Residual(hid_three_channel, attention, num_block=2, groups=hid_three_channel, kernel=(3, 3), stride=(1, 1), padding=(1, 1))
         self.conv_6_sep = Conv_block(hid_three_channel, out_channel, kernel=(1, 1), stride=(1, 1), padding=(0, 0))
