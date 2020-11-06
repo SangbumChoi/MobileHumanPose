@@ -147,6 +147,7 @@ class MobileNetV2(nn.Module):
         # make it nn.Sequential
         self.features = nn.Sequential(*features)
 
+    def init_weights(self):
         # weight initialization
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
