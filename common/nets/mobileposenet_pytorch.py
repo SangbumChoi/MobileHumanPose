@@ -109,8 +109,6 @@ class MobilePoseNet(Module):
         self.conv_5 = Residual(hid_three_channel, attention, num_block=2, groups=hid_three_channel, kernel=(3, 3), stride=(1, 1), padding=(1, 1))
         self.conv_6_sep = Conv_block(hid_three_channel, out_channel, kernel=(1, 1), stride=(1, 1), padding=(0, 0))
 
-        self.init_weights()
-
     def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -127,19 +125,12 @@ class MobilePoseNet(Module):
 
     def forward(self, x):
         out = self.conv1(x)
-
         out = self.conv2_dw(out)
-
         out = self.conv_23(out)
-
         out = self.conv_3(out)
-
         out = self.conv_34(out)
-
         out = self.conv_4(out)
-
         out = self.conv_45(out)
-
         out = self.conv_5(out)
 
         conv_features = self.conv_6_sep(out)

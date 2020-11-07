@@ -714,11 +714,5 @@ converter = PytorchToKeras(pytorch_model, keras_model)
 converter.convert((3,256,256))
 
 #Save the weights of the converted keras model for later use
-<<<<<<< HEAD
 converter.save_weights("../output/baseline.h5")
-=======
-converter.save_weights("baseline.h5")
-converter.save_model("baseline")
->>>>>>> a7182ae38047003b909eda6445073ce16851add2
-
 converter.save_model("../output/baseline")
