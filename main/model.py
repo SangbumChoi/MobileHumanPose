@@ -6,6 +6,7 @@ from nets.mobilenext_pytorch import MobileNeXt
 from nets.mobilenext_redundentlayer import MobileNeXt_
 from nets.mobilenetv2_pytorch import MobileNetV2
 from nets.mobileposenet_pytorch import MobilePoseNet
+from nets.ghostnet_pytorch import GhostNet
 from config import cfg
 from torchsummary import summary
 
@@ -135,9 +136,9 @@ def soft_argmax(heatmaps, joint_num):
     accu_y = heatmaps.sum(dim=(2,4))
     accu_z = heatmaps.sum(dim=(3,4))
 
-    accu_x = accu_x * torch.cuda.comm.broadcast(torch.arange(1,cfg.output_shape[1]+1).type(torch.cuda.FloatTensor), devices=[accu_x.device.index])[0]
-    accu_y = accu_y * torch.cuda.comm.broadcast(torch.arange(1,cfg.output_shape[0]+1).type(torch.cuda.FloatTensor), devices=[accu_y.device.index])[0]
-    accu_z = accu_z * torch.cuda.comm.broadcast(torch.arange(1,cfg.depth_dim+1).type(torch.cuda.FloatTensor), devices=[accu_z.device.index])[0]
+    accu_x = accu_x * torch.nn.parallel.comm.broadcast(torch.arange(1,cfg.output_shape[1]+1).type(torch.cuda.FloatTensor), devices=[accu_x.device.index])[0]
+    accu_y = accu_y * torch.nn.parallel.comm.broadcast(torch.arange(1,cfg.output_shape[0]+1).type(torch.cuda.FloatTensor), devices=[accu_y.device.index])[0]
+    accu_z = accu_z * torch.nn.parallel.comm.broadcast(torch.arange(1,cfg.depth_dim+1).type(torch.cuda.FloatTensor), devices=[accu_z.device.index])[0]
 
     accu_x = accu_x.sum(dim=2, keepdim=True) -1
     accu_y = accu_y.sum(dim=2, keepdim=True) -1
@@ -185,6 +186,9 @@ def get_pose_net(backbone_str, frontbone_str, is_train, joint_num):
     elif backbone_str == 'mobpose':
         print("load MobilePoseNet")
         backbone = MobilePoseNet(attention='cbam')
+    elif backbone_str == 'ghost':
+        print("load GhostNet")
+        backbone = GhostNet()
     else:
         print("load ResNet")
         backbone = ResNetBackbone(backbone_str)

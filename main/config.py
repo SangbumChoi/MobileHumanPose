@@ -10,7 +10,7 @@ class Config:
     # 3D: Human36M, MuCo
     # 2D: MSCOCO, MPII 
     trainset_3d = ['Human36M']
-    trainset_2d = ['MPII']
+    trainset_2d = ['MPII', 'MSCOCO']
 
     # testing set
     # Human36M, MuPoTS, MSCOCO
