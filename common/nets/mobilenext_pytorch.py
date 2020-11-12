@@ -71,7 +71,7 @@ class MobileNeXt(nn.Module):
         block = SandGlass
 
         init_channel = 32
-        last_channel = 2048
+        last_channel = 1024
 
         init_channel = _make_divisible(init_channel * width_mult, divisor)
         self.last_channel = _make_divisible(last_channel * max(1.0, width_mult), divisor)
