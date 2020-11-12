@@ -7,6 +7,7 @@ from nets.mobilenext_redundentlayer import MobileNeXt_
 from nets.mobilenetv2_pytorch import MobileNetV2
 from nets.mobileposenet_pytorch import MobilePoseNet
 from nets.ghostnet_pytorch import GhostNet
+from nets.mobilenetv3_pytorch import MobileNetV3
 from config import cfg
 from torchsummary import summary
 
@@ -255,6 +256,9 @@ def get_pose_net(backbone_str, frontbone_str, is_train, joint_num):
     elif backbone_str == 'ghost':
         print("load GhostNet")
         backbone = GhostNet()
+    elif backbone_str == 'mobv3':
+        print("load MobileNetV3")
+        backbone = MobileNetV3()
     else:
         print("load ResNet")
         backbone = ResNetBackbone(backbone_str)
