@@ -86,7 +86,7 @@ class MobileNetV2(nn.Module):
             norm_layer: Module specifying the normalization layer to use
         """
         super(MobileNetV2, self).__init__()
-        assert input_size[0] in [256]
+        assert input_size[1] in [256]
         if block is None:
             block = InvertedResidual
 

@@ -69,7 +69,7 @@ class MobileNeXt(nn.Module):
                  divisor=8,
                  sand_glass_setting=None):
         super(MobileNeXt, self).__init__()
-        assert input_size[0] in [256]
+        assert input_size[1] in [256]
 
         block = SandGlass
 

@@ -211,7 +211,7 @@ class GhostNet(nn.Module):
     def __init__(self, input_size, embedding_size=512, width=1.3):
         super(GhostNet, self).__init__()
         # setting of inverted residual blocks
-        assert input_size[0] in [256]
+        assert input_size[1] in [256]
         self.cfgs = cfgs
 
         # building first layer

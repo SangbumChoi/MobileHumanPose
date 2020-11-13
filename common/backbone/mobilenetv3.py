@@ -168,7 +168,7 @@ class MobileNetV3(nn.Module):
     def __init__(self, input_size, embedding_size=512, width_mult=1.):
         super(MobileNetV3, self).__init__()
         # setting of inverted residual blocks
-        assert input_size[0] in [256]
+        assert input_size[1] in [256]
         self.cfgs = large_cfgs
 
         # building first layer
