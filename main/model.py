@@ -65,15 +65,15 @@ class ResPoseNet(nn.Module):
 def get_pose_net(backbone_str, head_str, is_train, joint_num):
     INPUT_SIZE = cfg.input_shape
     EMBEDDING_SIZE = cfg.embedding_size # feature dimension
-    assert INPUT_SIZE == [256, 256]
+    assert INPUT_SIZE == (256, 256)
     backbone = BACKBONE_DICT[backbone_str](INPUT_SIZE, EMBEDDING_SIZE)
     print("=" * 60)
-    print("{} Backbone Generated".format(backbone))
+    print("{} Backbone Generated".format(backbone_str))
     print("=" * 60)
 
-    head = HEAD_DICT[head_str](in_features = EMBEDDING_SIZE, out_features = joint_num)
+    head = HEAD_DICT[head_str](in_features = EMBEDDING_SIZE, joint_num = joint_num)
     print("=" * 60)
-    print("{} Head Generated".format(head))
+    print("{} Head Generated".format(head_str))
     print("=" * 60)
     if is_train:
         backbone.init_weights()
