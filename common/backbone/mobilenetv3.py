@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch
 from torchsummary import summary
 
+
 def _make_divisible(v, divisor, min_value=None):
     """
     This function is taken from the original tf repo.
@@ -128,6 +129,7 @@ class InvertedResidual(nn.Module):
         else:
             return self.conv(x)
 
+
 large_cfgs = [
     # k, t, c, SE, HS, s
     [3, 1, 16, 0, 0, 1],
@@ -161,10 +163,12 @@ small_cfgs = [
     [5, 6, 96, 1, 1, 1],
 ]
 
+
 class MobileNetV3(nn.Module):
-    def __init__(self, width_mult=1.):
+    def __init__(self, input_size, embedding_size=512, width_mult=1.):
         super(MobileNetV3, self).__init__()
         # setting of inverted residual blocks
+        assert input_size[0] in [256]
         self.cfgs = large_cfgs
 
         # building first layer
@@ -180,8 +184,18 @@ class MobileNetV3(nn.Module):
         self.features = nn.Sequential(*layers)
 
         # building last several layers
-        self.conv = conv_1x1_bn(input_channel, 2048)
-
+        self.conv = conv_1x1_bn(input_channel, embedding_size)
+        '''
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        output_channel = {'large': 1280, 'small': 1024}
+        output_channel = _make_divisible(output_channel[mode] * width_mult, 8) if width_mult > 1.0 else output_channel[mode]
+        self.classifier = nn.Sequential(
+            nn.Linear(exp_size, output_channel),
+            h_swish(),
+            nn.Dropout(0.2),
+            nn.Linear(output_channel, num_classes),
+        )
+        '''
 
     def init_weights(self):
         for m in self.modules():
@@ -201,11 +215,3 @@ class MobileNetV3(nn.Module):
         x = self.features(x)
         x = self.conv(x)
         return x
-
-if __name__ == "__main__":
-    model = MobileNetV3()
-    print(model)
-    test_data = torch.rand(1, 3, 256, 256)
-    test_outputs = model(test_data)
-    print(test_outputs.size())
-    summary(model, (3, 256, 256))

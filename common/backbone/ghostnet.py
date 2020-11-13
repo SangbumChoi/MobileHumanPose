@@ -167,11 +167,11 @@ cfgs = [
     # k, t, c, SE, s
     # stage1
     [
-        [3, 96, 96, 0, 1]
+        [3, 16, 16, 0, 1]
     ],
     # stage2
     [
-        [3, 144, 24, 0, 2]
+        [3, 48, 24, 0, 2]
     ],
     [
         [3, 72, 24, 0, 1]
@@ -190,25 +190,28 @@ cfgs = [
     [
         [3, 200, 80, 0, 1],
         [3, 184, 80, 0, 1],
+        [3, 184, 80, 0, 1],
         [3, 480, 112, 0.25, 1],
         [3, 672, 112, 0.25, 1]
     ],
     # stage5
     [
-        [5, 672, 64, 0.25, 2]
+        [5, 672, 160, 0.25, 2]
     ],
     [
-        [5, 960, 64, 0.25, 1],
-        [5, 64, 64, 0.25, 1],
-        [5, 2048, 64, 0, 2]
+        [5, 960, 160, 0, 1],
+        [5, 960, 160, 0.25, 1],
+        [5, 960, 160, 0, 1],
+        [5, 512, 160, 0.25, 1]
     ]
 ]
 
 
 class GhostNet(nn.Module):
-    def __init__(self, width=1):
+    def __init__(self, input_size, embedding_size=512, width=1.3):
         super(GhostNet, self).__init__()
         # setting of inverted residual blocks
+        assert input_size[0] in [256]
         self.cfgs = cfgs
 
         # building first layer
@@ -232,7 +235,7 @@ class GhostNet(nn.Module):
             stages.append(nn.Sequential(*layers))
 
         output_channel = _make_divisible(exp_size * width, 4)
-        stages.append(nn.Sequential(ConvBnAct(input_channel, output_channel, 1)))
+        stages.append(nn.Sequential(ConvBnAct(input_channel, embedding_size, 1)))
 
         self.blocks = nn.Sequential(*stages)
 
@@ -256,11 +259,3 @@ class GhostNet(nn.Module):
         x = self.act1(x)
         x = self.blocks(x)
         return x
-
-if __name__ == "__main__":
-    model = GhostNet()
-    print(model)
-    test_data = torch.rand(1, 3, 256, 256)
-    test_outputs = model(test_data)
-    print(test_outputs.size())
-    summary(model, (3, 256, 256))

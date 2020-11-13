@@ -1,197 +1,19 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from nets.resnet import ResNetBackbone
-from nets.mobilenext_pytorch import MobileNeXt
-from nets.mobilenext_redundentlayer import MobileNeXt_
-from nets.mobilenetv2_pytorch import MobileNetV2
-from nets.mobileposenet_pytorch import MobilePoseNet
-from nets.ghostnet_pytorch import GhostNet
-from nets.mobilenetv3_pytorch import MobileNetV3
+from backbone import *
+from head import *
 from config import cfg
 from torchsummary import summary
 
-class HeadNet(nn.Module):
+BACKBONE_DICT = {
+                 # 'ResNet_50': ResNet_50, 'ResNet_101': ResNet_101, 'ResNet_152': ResNet_152,
+                 'GhostNet': GhostNet, 'MobileNetV3': MobileNetV3,
+                 'MobileNeXt': MobileNeXt, 'MobileNetV2': MobileNetV2
+                 }
 
-    def __init__(self, joint_num):
-        self.inplanes = 2048
-        self.outplanes = 256
-
-        super(HeadNet, self).__init__()
-
-        self.deconv_layers = self._make_deconv_layer(3)
-        self.final_layer = nn.Conv2d(
-            in_channels=self.inplanes,
-            out_channels=joint_num * cfg.depth_dim,
-            kernel_size=1,
-            stride=1,
-            padding=0
-        )
-
-    def _make_deconv_layer(self, num_layers):
-        layers = []
-        for i in range(num_layers):
-            layers.append(
-                nn.ConvTranspose2d(
-                    in_channels=self.inplanes,
-                    out_channels=self.outplanes,
-                    kernel_size=4,
-                    stride=2,
-                    padding=1,
-                    output_padding=0,
-                    bias=False))
-            layers.append(nn.BatchNorm2d(self.outplanes))
-            layers.append(nn.ReLU(inplace=True))
-            self.inplanes = self.outplanes
-
-        return nn.Sequential(*layers)
-
-    def forward(self, x):
-        x = self.deconv_layers(x)
-        x = self.final_layer(x)
-
-        return x
-
-    def init_weights(self):
-        for name, m in self.deconv_layers.named_modules():
-            if isinstance(m, nn.ConvTranspose2d):
-                nn.init.normal_(m.weight, std=0.001)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        for m in self.final_layer.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.normal_(m.weight, std=0.001)
-                nn.init.constant_(m.bias, 0)
-
-class CustomNet1(nn.Module):
-
-    def __init__(self, joint_num):
-        self.inplanes = 2048
-        self.hidplanes = 64
-        self.outplanes = 256
-
-        super(CustomNet1, self).__init__()
-
-        self.deconv_layer_1 = nn.Sequential(
-            nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(in_channels=self.inplanes, out_channels=self.hidplanes, kernel_size=3, stride=1, padding=1, groups=1, bias=False),
-            nn.BatchNorm2d(self.hidplanes),
-            nn.ReLU(inplace=True))
-        self.deconv_layer_2 = nn.Sequential(
-            nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(in_channels=self.hidplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=self.hidplanes, bias=False),
-            nn.BatchNorm2d(self.outplanes),
-            nn.ReLU(inplace=True))
-        self.deconv_layer_3 = nn.Sequential(
-            nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(in_channels=self.outplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=self.outplanes, bias=False),
-            nn.BatchNorm2d(self.outplanes),
-            nn.ReLU(inplace=True))
-        self.final_layer = nn.Conv2d(
-            in_channels=self.outplanes,
-            out_channels=joint_num * cfg.depth_dim,
-            kernel_size=1,
-            stride=1,
-            padding=0
-        )
-
-    def forward(self, x):
-        x = self.deconv_layer_1(x)
-        x = self.deconv_layer_2(x)
-        x = self.deconv_layer_3(x)
-        x = self.final_layer(x)
-        return x
-
-    def init_weights(self):
-        for name, m in self.deconv_layer_1.named_modules():
-            if isinstance(m, nn.ConvTranspose2d):
-                nn.init.normal_(m.weight, std=0.001)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        for name, m in self.deconv_layer_2.named_modules():
-            if isinstance(m, nn.ConvTranspose2d):
-                nn.init.normal_(m.weight, std=0.001)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        for name, m in self.deconv_layer_3.named_modules():
-            if isinstance(m, nn.ConvTranspose2d):
-                nn.init.normal_(m.weight, std=0.001)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        for m in self.final_layer.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.normal_(m.weight, std=0.001)
-                nn.init.constant_(m.bias, 0)
-
-class CustomNet2(nn.Module):
-
-    def __init__(self, joint_num):
-        self.inplanes = 1024
-        self.hidplanes = 256
-        self.outplanes = 256
-
-        super(CustomNet2, self).__init__()
-
-        self.deconv_layer_1 = nn.Sequential(
-            nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(in_channels=self.inplanes, out_channels=self.hidplanes, kernel_size=3, stride=1, padding=1, groups=1, bias=False),
-            nn.BatchNorm2d(self.hidplanes),
-            nn.ReLU(inplace=True))
-        self.deconv_layer_2 = nn.Sequential(
-            nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(in_channels=self.hidplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=self.hidplanes, bias=False),
-            nn.BatchNorm2d(self.outplanes),
-            nn.ReLU(inplace=True))
-        self.deconv_layer_3 = nn.Sequential(
-            nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(in_channels=self.outplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=self.outplanes, bias=False),
-            nn.BatchNorm2d(self.outplanes),
-            nn.ReLU(inplace=True))
-        self.upsample_layer = nn.UpsamplingBilinear2d(scale_factor=2)
-        self.final_layer = nn.Conv2d(
-            in_channels=self.outplanes,
-            out_channels=joint_num * cfg.depth_dim,
-            kernel_size=1,
-            stride=1,
-            padding=0
-        )
-
-    def forward(self, x):
-        x1 = self.deconv_layer_1(x)
-        w1 = self.upsample_layer(x1)
-        x2 = self.deconv_layer_2(x1)
-        w2 = self.upsample_layer(x2)
-        x3 = self.deconv_layer_3(x2+w1)
-        x = self.final_layer(x3+w2)
-        return x
-
-    def init_weights(self):
-        for name, m in self.deconv_layer_1.named_modules():
-            if isinstance(m, nn.ConvTranspose2d):
-                nn.init.normal_(m.weight, std=0.001)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        for name, m in self.deconv_layer_2.named_modules():
-            if isinstance(m, nn.ConvTranspose2d):
-                nn.init.normal_(m.weight, std=0.001)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        for name, m in self.deconv_layer_3.named_modules():
-            if isinstance(m, nn.ConvTranspose2d):
-                nn.init.normal_(m.weight, std=0.001)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        for m in self.final_layer.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.normal_(m.weight, std=0.001)
-                nn.init.constant_(m.bias, 0)
+HEAD_DICT = {'HeadNet': HeadNet, 'Custom1' : CustomNet1, 'Custom2' : CustomNet2
+             }
 
 def soft_argmax(heatmaps, joint_num):
 
@@ -240,41 +62,22 @@ class ResPoseNet(nn.Module):
             
             return loss_coord
 
-def get_pose_net(backbone_str, frontbone_str, is_train, joint_num):
-    if backbone_str == 'mobxt':
-        print("load MobileNeXt")
-        backbone = MobileNeXt(width_mult=1.0)
-    elif backbone_str == 'mobxt_':
-        print("load MobileNext_")
-        backbone = MobileNeXt_(width_mult=1.0)
-    elif backbone_str == 'mobv2':
-        print("load MobileNetV2")
-        backbone = MobileNetV2()
-    elif backbone_str == 'mobpose':
-        print("load MobilePoseNet")
-        backbone = MobilePoseNet(attention='cbam')
-    elif backbone_str == 'ghost':
-        print("load GhostNet")
-        backbone = GhostNet()
-    elif backbone_str == 'mobv3':
-        print("load MobileNetV3")
-        backbone = MobileNetV3()
-    else:
-        print("load ResNet")
-        backbone = ResNetBackbone(backbone_str)
+def get_pose_net(backbone_str, head_str, is_train, joint_num):
+    INPUT_SIZE = cfg.input_shape
+    EMBEDDING_SIZE = cfg.embedding_size # feature dimension
+    assert INPUT_SIZE == [256, 256]
+    backbone = BACKBONE_DICT[backbone_str](INPUT_SIZE, EMBEDDING_SIZE)
+    print("=" * 60)
+    print("{} Backbone Generated".format(backbone))
+    print("=" * 60)
 
-    if frontbone_str == 'custom1':
-        print("load CustomNet1")
-        head_net = CustomNet1(joint_num)
-    elif frontbone_str == 'custom2':
-        print("load CustomNet2")
-        head_net = CustomNet2(joint_num)
-    else:
-        print("load HeadNet")
-        head_net = HeadNet(joint_num)
+    head = HEAD_DICT[head_str](in_features = EMBEDDING_SIZE, out_features = joint_num)
+    print("=" * 60)
+    print("{} Head Generated".format(head))
+    print("=" * 60)
     if is_train:
         backbone.init_weights()
-        head_net.init_weights()
+        head.init_weights()
 
-    model = ResPoseNet(backbone, head_net, joint_num)
+    model = ResPoseNet(backbone, head, joint_num)
     return model

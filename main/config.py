@@ -35,6 +35,7 @@ class Config:
     pixel_std = (0.229, 0.224, 0.225)
 
     ## training config
+    embedding_size = 512
     lr_dec_epoch = [17, 21]
     end_epoch = 10
     lr = 1e-3

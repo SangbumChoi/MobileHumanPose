@@ -4,7 +4,7 @@ from torch import Tensor
 from typing import Callable, Optional, List
 from torchsummary import summary
 
-def _make_divisible(v: float, divisor: int, min_value: Optional[int] = None) -> int:
+def _make_divisible(v, divisor, min_value=None):
     """
     This function is taken from the original tf repo.
     It ensures that all layers have a channel number that is divisible by 8
@@ -25,34 +25,19 @@ def _make_divisible(v: float, divisor: int, min_value: Optional[int] = None) -> 
 
 
 class ConvBNReLU(nn.Sequential):
-    def __init__(
-        self,
-        in_planes: int,
-        out_planes: int,
-        kernel_size: int = 3,
-        stride: int = 1,
-        groups: int = 1,
-        norm_layer: Optional[Callable[..., nn.Module]] = None
-    ) -> None:
+    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1, norm_layer=None):
         padding = (kernel_size - 1) // 2
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         super(ConvBNReLU, self).__init__(
             nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, groups=groups, bias=False),
             norm_layer(out_planes),
-            nn.ReLU6(inplace=True)
+            nn.PReLU(out_planes) #nn.ReLU6(inplace=True)
         )
 
 
 class InvertedResidual(nn.Module):
-    def __init__(
-        self,
-        inp: int,
-        oup: int,
-        stride: int,
-        expand_ratio: int,
-        norm_layer: Optional[Callable[..., nn.Module]] = None
-    ) -> None:
+    def __init__(self, inp, oup, stride, expand_ratio, norm_layer=None):
         super(InvertedResidual, self).__init__()
         self.stride = stride
         assert stride in [1, 2]
@@ -63,7 +48,7 @@ class InvertedResidual(nn.Module):
         hidden_dim = int(round(inp * expand_ratio))
         self.use_res_connect = self.stride == 1 and inp == oup
 
-        layers: List[nn.Module] = []
+        layers = []
         if expand_ratio != 1:
             # pw
             layers.append(ConvBNReLU(inp, hidden_dim, kernel_size=1, norm_layer=norm_layer))
@@ -76,7 +61,7 @@ class InvertedResidual(nn.Module):
         ])
         self.conv = nn.Sequential(*layers)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x):
         if self.use_res_connect:
             return x + self.conv(x)
         else:
@@ -84,18 +69,15 @@ class InvertedResidual(nn.Module):
 
 
 class MobileNetV2(nn.Module):
-    def __init__(
-        self,
-        width_mult: float = 1.0,
-        inverted_residual_setting: Optional[List[List[int]]] = None,
-        round_nearest: int = 8,
-        block: Optional[Callable[..., nn.Module]] = None,
-        norm_layer: Optional[Callable[..., nn.Module]] = None
-    ) -> None:
+    def __init__(self,
+                 input_size, embedding_size = 512,
+                 width_mult=1.0, inverted_residual_setting=None,
+                 round_nearest=8,
+                 block=None,
+                 norm_layer=None):
         """
         MobileNet V2 main class
         Args:
-            num_classes (int): Number of classes
             width_mult (float): Width multiplier - adjusts number of channels in each layer by this amount
             inverted_residual_setting: Network structure
             round_nearest (int): Round the number of channels in each layer to be a multiple of this number
@@ -104,7 +86,7 @@ class MobileNetV2(nn.Module):
             norm_layer: Module specifying the normalization layer to use
         """
         super(MobileNetV2, self).__init__()
-
+        assert input_size[0] in [256]
         if block is None:
             block = InvertedResidual
 
@@ -112,13 +94,13 @@ class MobileNetV2(nn.Module):
             norm_layer = nn.BatchNorm2d
 
         input_channel = 32
-        last_channel = 2048
+        last_channel = embedding_size
 
         if inverted_residual_setting is None:
             inverted_residual_setting = [
                 # t, c, n, s
                 [1, 16, 1, 1],
-                [6, 24, 2, 2],
+                #[6, 24, 2, 2],
                 [6, 32, 3, 2],
                 [6, 64, 4, 2],
                 [6, 96, 3, 1],
@@ -134,7 +116,7 @@ class MobileNetV2(nn.Module):
         # building first layer
         input_channel = _make_divisible(input_channel * width_mult, round_nearest)
         self.last_channel = _make_divisible(last_channel * max(1.0, width_mult), round_nearest)
-        features: List[nn.Module] = [ConvBNReLU(3, input_channel, stride=2, norm_layer=norm_layer)]
+        features = [ConvBNReLU(3, input_channel, stride=2, norm_layer=norm_layer)]
         # building inverted residual blocks
         for t, c, n, s in inverted_residual_setting:
             output_channel = _make_divisible(c * width_mult, round_nearest)
@@ -147,6 +129,8 @@ class MobileNetV2(nn.Module):
         # make it nn.Sequential
         self.features = nn.Sequential(*features)
 
+        # building classifier
+
     def init_weights(self):
         # weight initialization
         for m in self.modules():
@@ -158,16 +142,10 @@ class MobileNetV2(nn.Module):
                 nn.init.ones_(m.weight)
                 nn.init.zeros_(m.bias)
             elif isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, 0, 0.01)
-                nn.init.zeros_(m.bias)
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    m.bias.data.zero_()
 
-    def forward(self, x: Tensor) -> Tensor:
-        return self.features(x)
-
-if __name__ == "__main__":
-    model = MobileNetV2()
-    print(model)
-    test_data = torch.rand(1, 3, 256, 256)
-    test_outputs = model(test_data)
-    print(test_outputs.size())
-    summary(model, (3, 256, 256))
+    def forward(self, x):
+        x = self.features(x)
+        return x
