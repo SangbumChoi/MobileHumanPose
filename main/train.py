@@ -1,7 +1,10 @@
 import argparse
 from config import cfg
+from tqdm import tqdm
 import torch
 from base import Trainer
+from base import Tester
+from utils.pose_utils import flip
 import torch.backends.cudnn as cudnn
 
 def parse_args():
@@ -34,6 +37,10 @@ def main():
     trainer = Trainer(args.backbone, args.frontbone)
     trainer._make_batch_generator()
     trainer._make_model()
+
+    tester = Tester(args.model, args.backbone, args.frontbone)
+    tester._make_batch_generator()
+    tester._make_model()
 
     # train
     for epoch in range(trainer.start_epoch, cfg.end_epoch):
@@ -76,7 +83,30 @@ def main():
             'network': trainer.model.state_dict(),
             'optimizer': trainer.optimizer.state_dict(),
         }, epoch)
-        
+
+        preds = []
+
+        with torch.no_grad():
+            for itr, input_img in enumerate(tqdm(tester.batch_generator)):
+
+                # forward
+                coord_out = tester.model(input_img)
+
+                if cfg.flip_test:
+                    flipped_input_img = flip(input_img, dims=3)
+                    flipped_coord_out = tester.model(flipped_input_img)
+                    flipped_coord_out[:, :, 0] = cfg.output_shape[1] - flipped_coord_out[:, :, 0] - 1
+                    for pair in tester.flip_pairs:
+                        flipped_coord_out[:, pair[0], :], flipped_coord_out[:, pair[1], :] = flipped_coord_out[:, pair[1],
+                                                                                             :].clone(), flipped_coord_out[
+                                                                                                         :, pair[0],
+                                                                                                         :].clone()
+                    coord_out = (coord_out + flipped_coord_out) / 2.
+                coord_out = coord_out.cpu().numpy()
+                preds.append(coord_out)
+        # evaluate
+        preds = np.concatenate(preds, axis=0)
+        tester._evaluate(preds, cfg.result_dir)
 
 if __name__ == "__main__":
     main()
