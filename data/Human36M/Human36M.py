@@ -217,7 +217,7 @@ class Human36M:
         for i in range(len(error_action)):
             err = np.mean(np.array(error_action[i]))
             eval_summary += (self.action_name[i] + ': %.2f ' % err)
-           
+
         print(eval_summary)
 
         # prediction save
@@ -225,4 +225,6 @@ class Human36M:
         with open(output_path, 'w') as f:
             json.dump(pred_save, f)
         print("Test result is saved at " + output_path)
+
+        return eval_summary
 

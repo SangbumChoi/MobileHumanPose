@@ -137,8 +137,7 @@ class Trainer(Base):
 
 class Tester(Base):
     
-    def __init__(self, test_model, backbone, frontbone):
-        self.test_model_path = test_model
+    def __init__(self, backbone, frontbone):
         self.backbone = backbone
         self.frontbone = frontbone
         super(Tester, self).__init__(log_name = 'test_logs.txt')
@@ -159,8 +158,8 @@ class Tester(Base):
         self.flip_pairs = testset.flip_pairs
         self.batch_generator = batch_generator
     
-    def _make_model(self):
-        
+    def _make_model(self, test_model):
+        self.test_model_path = test_model
         model_path = os.path.join(self.test_model_path)
         assert os.path.exists(model_path), 'Cannot find model at ' + model_path
         self.logger.info('Load checkpoint from {}'.format(model_path))

@@ -1,6 +1,8 @@
 import argparse
 from config import cfg
 from tqdm import tqdm
+import os.path as osp
+import numpy as np
 import torch
 from base import Trainer
 from base import Tester
@@ -38,9 +40,8 @@ def main():
     trainer._make_batch_generator()
     trainer._make_model()
 
-    tester = Tester(args.model, args.backbone, args.frontbone)
+    tester = Tester(args.backbone, args.frontbone)
     tester._make_batch_generator()
-    tester._make_model()
 
     # train
     for epoch in range(trainer.start_epoch, cfg.end_epoch):
@@ -85,6 +86,7 @@ def main():
         }, epoch)
 
         preds = []
+        tester._make_model(osp.join(cfg.model_dir,'snapshot_{}.pth.tar'.format(str(epoch))))
 
         with torch.no_grad():
             for itr, input_img in enumerate(tqdm(tester.batch_generator)):
@@ -106,7 +108,8 @@ def main():
                 preds.append(coord_out)
         # evaluate
         preds = np.concatenate(preds, axis=0)
-        tester._evaluate(preds, cfg.result_dir)
+        result = tester._evaluate(preds, cfg.result_dir)
+        trainer.logger.info(''.joint(result))
 
 if __name__ == "__main__":
     main()

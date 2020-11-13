@@ -38,9 +38,9 @@ def main():
     cudnn.deterministic = False
     cudnn.enabled = True
 
-    tester = Tester(args.model, args.backbone, args.frontbone)
+    tester = Tester(args.backbone, args.frontbone)
     tester._make_batch_generator()
-    tester._make_model()
+    tester._make_model(args.model)
 
     preds = []
 
