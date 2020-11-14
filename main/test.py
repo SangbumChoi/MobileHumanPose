@@ -31,8 +31,9 @@ def parse_args():
         model_epoch = args.model.split('-')
         model_epoch[0] = int(model_epoch[0])
         model_epoch[1] = int(model_epoch[1]) + 1
+        args.model_epoch = model_epoch
 
-    return args.model_epoch
+    return args
 
 def main():
 
