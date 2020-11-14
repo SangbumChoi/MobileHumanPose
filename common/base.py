@@ -158,9 +158,9 @@ class Tester(Base):
         self.flip_pairs = testset.flip_pairs
         self.batch_generator = batch_generator
     
-    def _make_model(self, test_model):
-        self.test_model_path = test_model
-        model_path = os.path.join(self.test_model_path)
+    def _make_model(self, test_epoch):
+        self.test_epoch = test_epoch
+        model_path = os.path.join(cfg.model_dir, 'snapshot_%d.pth.tar' % self.test_epoch)
         assert os.path.exists(model_path), 'Cannot find model at ' + model_path
         self.logger.info('Load checkpoint from {}'.format(model_path))
         

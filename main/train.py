@@ -85,31 +85,5 @@ def main():
             'optimizer': trainer.optimizer.state_dict(),
         }, epoch)
 
-        preds = []
-        tester._make_model(osp.join(cfg.model_dir,'snapshot_{}.pth.tar'.format(str(epoch))))
-
-        with torch.no_grad():
-            for itr, input_img in enumerate(tqdm(tester.batch_generator)):
-
-                # forward
-                coord_out = tester.model(input_img)
-
-                if cfg.flip_test:
-                    flipped_input_img = flip(input_img, dims=3)
-                    flipped_coord_out = tester.model(flipped_input_img)
-                    flipped_coord_out[:, :, 0] = cfg.output_shape[1] - flipped_coord_out[:, :, 0] - 1
-                    for pair in tester.flip_pairs:
-                        flipped_coord_out[:, pair[0], :], flipped_coord_out[:, pair[1], :] = flipped_coord_out[:, pair[1],
-                                                                                             :].clone(), flipped_coord_out[
-                                                                                                         :, pair[0],
-                                                                                                         :].clone()
-                    coord_out = (coord_out + flipped_coord_out) / 2.
-                coord_out = coord_out.cpu().numpy()
-                preds.append(coord_out)
-        # evaluate
-        preds = np.concatenate(preds, axis=0)
-        result = tester._evaluate(preds, cfg.result_dir)
-        trainer.logger.info(''.joint(result))
-
 if __name__ == "__main__":
     main()
