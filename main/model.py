@@ -7,10 +7,10 @@ from config import cfg
 from torchsummary import summary
 
 BACKBONE_DICT = {
-                 # 'ResNet_50': ResNet_50, 'ResNet_101': ResNet_101, 'ResNet_152': ResNet_152,
-                 'GhostNet': GhostNet, 'MobileNetV3': MobileNetV3,
-                 'MobileNeXt': MobileNeXt, 'MobileNetV2': MobileNetV2
-                 }
+    'GhostNet': GhostNet, 'MobileNetV3': MobileNetV3,
+    'MobileNeXt': MobileNeXt, 'MobileNetV2': MobileNetV2,
+    'MNasNet':MNasNet
+    }
 
 HEAD_DICT = {'HeadNet': HeadNet, 'Custom1' : CustomNet1, 'Custom2' : CustomNet2
              }
