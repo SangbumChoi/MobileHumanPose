@@ -1,16 +1,20 @@
 import torch
 import argparse
+import os
 import os.path as osp
 import torch.backends.cudnn as cudnn
 from torchsummary import summary
 from torch.nn.parallel.data_parallel import DataParallel
 from config import cfg
 from model import get_pose_net
+from thop import profile
+from thop import clever_format
+from ptflops import get_model_complexity_info
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, dest='gpu_ids')
-    parser.add_argument('--modelpath', type=str, dest='model')
+    parser.add_argument('--epoch', type=int, dest='test_epoch')
     parser.add_argument('--jointnum', type=int, dest='joint')
     parser.add_argument('--backbone', type=str, dest='backbone')
     parser.add_argument('--frontbone', type=str, dest='frontbone')
@@ -45,11 +49,22 @@ if joint_num == 21:
     skeleton = ( (0, 16), (16, 1), (1, 15), (15, 14), (14, 8), (14, 11), (8, 9), (9, 10), (10, 19), (11, 12), (12, 13), (13, 20), (1, 2), (2, 3), (3, 4), (4, 17), (1, 5), (5, 6), (6, 7), (7, 18) )
 
 # snapshot load
-model_path = args.model
+model_path = os.path.join(cfg.model_dir, 'snapshot_%d.pth.tar' % args.test_epoch)
 assert osp.exists(model_path), 'Cannot find model at ' + model_path
 model = get_pose_net(args.backbone, args.frontbone, False, joint_num)
 model = DataParallel(model).cuda()
 ckpt = torch.load(model_path)
 model.load_state_dict(ckpt['network'])
 
-summary(model, (3, 256, 256))
+single_model = model.module
+
+summary(single_model, (3, 256, 256))
+
+input = torch.randn(1, 3, 256, 256).cuda()
+macs, params = profile(single_model, inputs=(input,))
+macs, params = clever_format([macs, params], "%.3f")
+flops, params1 = get_model_complexity_info(single_model, (3, 256, 256),as_strings=True, print_per_layer_stat=False)
+print('{:<30}  {:<8}'.format('Computational complexity: ', flops))
+print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
+print('{:<30}  {:<8}'.format('Number of parameters: ', params))
+print('{:<30}  {:<8}'.format('Number of parameters: ', params1))

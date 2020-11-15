@@ -144,7 +144,7 @@ class Tester(Base):
 
     def _make_batch_generator(self):
         # data load and construct batch generator
-        self.logger.info("Creating dataset...")
+        # self.logger.info("Creating dataset...")
         testset = eval(cfg.testset)("test")
         testset_loader = DatasetLoader(testset, None, False, transforms.Compose([\
                                                                                                         transforms.ToTensor(),
@@ -162,10 +162,10 @@ class Tester(Base):
         self.test_epoch = test_epoch
         model_path = os.path.join(cfg.model_dir, 'snapshot_%d.pth.tar' % self.test_epoch)
         assert os.path.exists(model_path), 'Cannot find model at ' + model_path
-        self.logger.info('Load checkpoint from {}'.format(model_path))
+        # self.logger.info('Load checkpoint from {}'.format(model_path))
         
         # prepare network
-        self.logger.info("Creating graph...")
+        # self.logger.info("Creating graph...")
         model = get_pose_net(self.backbone, self.frontbone, True, self.joint_num)
         model = DataParallel(model).cuda()
         ckpt = torch.load(model_path)
@@ -175,5 +175,5 @@ class Tester(Base):
         self.model = model
 
     def _evaluate(self, preds, result_save_path):
-        self.testset.evaluate(preds, result_save_path)
-
+        eval_summary = self.testset.evaluate(preds, result_save_path)
+        self.logger.info('{}'.format(eval_summary))
