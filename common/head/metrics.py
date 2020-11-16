@@ -1,5 +1,21 @@
 import torch.nn as nn
+import torch
 from config import cfg
+
+def _make_divisible(v, divisor, min_value=None):
+    """
+    This function is taken from the original tf repo.
+    It ensures that all layers have a channel number that is divisible by 8
+    It can be seen here:
+    https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
+    """
+    if min_value is None:
+        min_value = divisor
+    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
+    # Make sure that round down does not go down by more than 10%.
+    if new_v < 0.9 * v:
+        new_v += divisor
+    return new_v
 
 class HeadNet(nn.Module):
 
@@ -187,42 +203,76 @@ class PartNet(nn.Module):
 
     def __init__(self, in_features, joint_num):
         self.inplanes = in_features
-        self.hidplanes = 256
         self.outplanes = 256
+        self.ratio = [1/4, 3/4]
+
+        self.hidplanes_s = _make_divisible(int(self.outplanes * self.ratio[0]), 8)
+        self.hidplanes_l = _make_divisible(int(self.outplanes * self.ratio[1]), 8)
 
         super(PartNet, self).__init__()
 
-        self.deconv_layer_1 = nn.Sequential(
+        self.deconv_layer_1_s = nn.Sequential(
             nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(in_channels=self.inplanes, out_channels=self.hidplanes, kernel_size=3, stride=1, padding=1, groups=1, bias=False),
-            nn.BatchNorm2d(self.hidplanes),
+            nn.Conv2d(in_channels=self.inplanes, out_channels=self.hidplanes_s, kernel_size=3, stride=1, padding=1,
+                      groups=1, bias=False),
+            nn.BatchNorm2d(self.hidplanes_s),
             nn.ReLU(inplace=True))
-        self.deconv_layer_2 = nn.Sequential(
+        self.deconv_layer_1_l = nn.Sequential(
             nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(in_channels=self.hidplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=self.hidplanes, bias=False),
-            nn.BatchNorm2d(self.outplanes),
+            nn.Conv2d(in_channels=self.inplanes, out_channels=self.hidplanes_l, kernel_size=3, stride=1, padding=1,
+                      groups=1, bias=False),
+            nn.BatchNorm2d(self.hidplanes_l),
             nn.ReLU(inplace=True))
-        self.deconv_layer_3 = nn.Sequential(
+        self.deconv_layer_2_s = nn.Sequential(
             nn.UpsamplingBilinear2d(scale_factor=2),
-            nn.Conv2d(in_channels=self.outplanes, out_channels=self.outplanes, kernel_size=3, stride=1, padding=1, groups=self.outplanes, bias=False),
-            nn.BatchNorm2d(self.outplanes),
+            nn.Conv2d(in_channels=self.hidplanes_s, out_channels=self.hidplanes_s, kernel_size=3, stride=1, padding=1,
+                      groups=self.hidplanes_s, bias=False),
+            nn.BatchNorm2d(self.hidplanes_s),
             nn.ReLU(inplace=True))
-        self.upsample_layer = nn.UpsamplingBilinear2d(scale_factor=2)
-        self.final_layer = nn.Conv2d(
-            in_channels=self.outplanes,
-            out_channels=joint_num * cfg.depth_dim,
+        self.deconv_layer_2_l = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.hidplanes_l, out_channels=self.hidplanes_l, kernel_size=3, stride=1, padding=1,
+                      groups=self.hidplanes_l, bias=False),
+            nn.BatchNorm2d(self.hidplanes_l),
+            nn.ReLU(inplace=True))
+        self.deconv_layer_3_s = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.hidplanes_s, out_channels=self.hidplanes_s, kernel_size=3, stride=1, padding=1,
+                      groups=self.hidplanes_s, bias=False),
+            nn.BatchNorm2d(self.hidplanes_s),
+            nn.ReLU(inplace=True))
+        self.deconv_layer_3_l = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.hidplanes_l, out_channels=self.hidplanes_l, kernel_size=3, stride=1, padding=1,
+                      groups=self.hidplanes_l, bias=False),
+            nn.BatchNorm2d(self.hidplanes_l),
+            nn.ReLU(inplace=True))
+        self.final_layer_s = nn.Conv2d(
+            in_channels=self.hidplanes_s,
+            out_channels=int(joint_num * cfg.depth_dim * self.ratio[0]),
+            kernel_size=1,
+            stride=1,
+            padding=0
+        )
+        self.final_layer_l = nn.Conv2d(
+            in_channels=self.hidplanes_l,
+            out_channels=int(joint_num * cfg.depth_dim * self.ratio[1]),
             kernel_size=1,
             stride=1,
             padding=0
         )
 
     def forward(self, x):
-        x1 = self.deconv_layer_1(x)
-        w1 = self.upsample_layer(x1)
-        x2 = self.deconv_layer_2(x1)
-        w2 = self.upsample_layer(x2)
-        x3 = self.deconv_layer_3(x2+w1)
-        x = self.final_layer(x3+w2)
+        xl = self.deconv_layer_1_l(x)
+        xs = self.deconv_layer_1_s(x)
+        xl = self.deconv_layer_2_l(xl)
+        xs = self.deconv_layer_2_s(xs)
+        xl = self.deconv_layer_3_l(xl)
+        xs = self.deconv_layer_3_s(xs)
+        xl = self.final_layer_l(xl)
+        xs = self.final_layer_s(xs)
+
+        x = torch.cat((xl, xs), dim=1)
         return x
 
     def init_weights(self):
