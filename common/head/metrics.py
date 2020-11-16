@@ -276,25 +276,19 @@ class PartNet(nn.Module):
         return x
 
     def init_weights(self):
-        for name, m in self.deconv_layer_1.named_modules():
-            if isinstance(m, nn.ConvTranspose2d):
-                nn.init.normal_(m.weight, std=0.001)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        for name, m in self.deconv_layer_2.named_modules():
-            if isinstance(m, nn.ConvTranspose2d):
-                nn.init.normal_(m.weight, std=0.001)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        for name, m in self.deconv_layer_3.named_modules():
-            if isinstance(m, nn.ConvTranspose2d):
-                nn.init.normal_(m.weight, std=0.001)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        for m in self.final_layer.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.normal_(m.weight, std=0.001)
-                nn.init.constant_(m.bias, 0)
+        deconv_layers = [self.deconv_layer_1_l, self.deconv_layer_1_s,
+                  self.deconv_layer_2_l, self.deconv_layer_2_s,
+                  self.deconv_layer_3_l, self.deconv_layer_3_s]
+        final_layers = [self.final_layer_l, self.final_layer_s]
+        for layer in deconv_layers:
+            for name, m in layer.named_modules():
+                if isinstance(m, nn.ConvTranspose2d):
+                    nn.init.normal_(m.weight, std=0.001)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+        for layer in final_layers:
+            for m in layer.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.normal_(m.weight, std=0.001)
+                    nn.init.constant_(m.bias, 0)
