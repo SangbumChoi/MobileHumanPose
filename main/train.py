@@ -40,9 +40,6 @@ def main():
     trainer._make_batch_generator()
     trainer._make_model()
 
-    tester = Tester(args.backbone, args.frontbone)
-    tester._make_batch_generator()
-
     # train
     for epoch in range(trainer.start_epoch, cfg.end_epoch):
         

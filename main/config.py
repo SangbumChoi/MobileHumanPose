@@ -36,7 +36,8 @@ class Config:
 
     ## training config
     embedding_size = 512
-    lr_dec_epoch = [17, 21]
+    lr_inc_epoch = 5
+    lr_dec_epoch = [15, 19]
     end_epoch = 10
     lr = 1e-3
     lr_dec_factor = 10
