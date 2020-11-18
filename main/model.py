@@ -80,12 +80,18 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
         if cfg.pre_train:
             backbone_dict = backbone.state_dict()
             file_path = osp.join(cfg.pretrain_dir, cfg.pre_train_name)
-            pretrained_dict = torch.load(file_path)['network']
+            pretrained_dict = torch.load(file_path)['state_dict']
             pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in backbone_dict}
             backbone_dict.update(pretrained_dict)
             backbone.load_state_dict(backbone_dict)
+            print("=" * 60)
+            print("{} has been successfully loaded".format(cfg.pre_train_name))
+            print("=" * 60)
         else:
             backbone.init_weights()
+            print("=" * 60)
+            print("random initialization")
+            print("=" * 60)
         head.init_weights()
 
     model = ResPoseNet(backbone, head, joint_num)
