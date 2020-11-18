@@ -22,6 +22,7 @@ class Config:
     data_dir = osp.join(root_dir, 'data')
     output_dir = osp.join(root_dir, 'output')
     model_dir = osp.join(output_dir, 'model_dump')
+    pretrain_dir = osp.join(output_dir, 'pre_train')
     vis_dir = osp.join(output_dir, 'vis')
     log_dir = osp.join(output_dir, 'log')
     result_dir = osp.join(output_dir, 'result')
@@ -42,6 +43,8 @@ class Config:
     lr = 1e-3
     lr_dec_factor = 10
     batch_size = 64
+    pre_train = True
+    pre_train_name = 'mobilenetv2_modified.pth.tar'
 
     ## testing config
     test_batch_size = 32
@@ -64,7 +67,6 @@ class Config:
 cfg = Config()
 
 sys.path.insert(0, osp.join(cfg.root_dir, 'common'))
-sys.path.insert(0, osp.join(cfg.root_dir, 'tensorflow'))
 from utils.dir_utils import add_pypath, make_folder
 add_pypath(osp.join(cfg.data_dir))
 for i in range(len(cfg.trainset_3d)):

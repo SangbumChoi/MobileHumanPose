@@ -4,6 +4,7 @@ from torch.nn import functional as F
 from backbone import *
 from head import *
 from config import cfg
+import os.path as osp
 from torchsummary import summary
 
 BACKBONE_DICT = {
@@ -76,7 +77,15 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
     print("{} Head Generated".format(head_str))
     print("=" * 60)
     if is_train:
-        backbone.init_weights()
+        if cfg.pre_train:
+            backbone_dict = backbone.state_dict()
+            file_path = osp.join(cfg.pretrain_dir, cfg.pre_train_name)
+            pretrained_dict = torch.load(file_path)['network']
+            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in backbone_dict}
+            backbone_dict.update(pretrained_dict)
+            backbone.load_state_dict(backbone_dict)
+        else:
+            backbone.init_weights()
         head.init_weights()
 
     model = ResPoseNet(backbone, head, joint_num)
