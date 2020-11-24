@@ -39,12 +39,12 @@ class Config:
     embedding_size = 512
     lr_inc_epoch = 5
     lr_dec_epoch = [15, 19]
-    end_epoch = 10
+    end_epoch = 25
     lr = 1e-3
     lr_dec_factor = 10
     batch_size = 64
     pre_train = True
-    pre_train_name = 'mobilenetv2_modified.pth.tar'
+    pre_train_name = 'mobilenetv2_lsp.pth.tar'
 
     ## testing config
     test_batch_size = 32

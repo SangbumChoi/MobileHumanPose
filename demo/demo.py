@@ -53,7 +53,7 @@ skeleton = ( (0, 7), (7, 8), (8, 9), (9, 10), (8, 11), (11, 12), (12, 13), (8, 1
 
 # snapshot load
 model_path = args.model
-assert osp.exists(model_path), 'Cannot find model at ' + model_path
+
 # print('Load checkpoint from {}'.format(model_path))
 model = get_pose_net(args.backbone, args.frontbone, False, joint_num)
 model = DataParallel(model).cuda()
@@ -72,8 +72,12 @@ original_img_height, original_img_width = original_img.shape[:2]
 
 # prepare bbox
 bbox_list = [
-[0, 0, 537, 790]] # xmin, ymin, width, height
-root_depth_list = [11250.5732421875] # obtain this from RootNet (https://github.com/mks0601/3DMPPE_ROOTNET_RELEASE/tree/master/demo)
+[139.41, 102.25, 222.39, 241.57],\
+[287.17, 61.52, 74.88, 165.61],\
+[540.04, 48.81, 99.96, 223.36],\
+[372.58, 170.84, 266.63, 217.19],\
+[0.5, 43.74, 90.1, 220.09]] # xmin, ymin, width, height
+root_depth_list = [11250.5732421875, 15522.8701171875, 11831.3828125, 8852.556640625, 12572.5966796875] # obtain this from RootNet (https://github.com/mks0601/3DMPPE_ROOTNET_RELEASE/tree/master/demo)
 assert len(bbox_list) == len(root_depth_list)
 person_num = len(bbox_list)
 
@@ -122,3 +126,4 @@ cv2.imwrite('output_pose_2d.jpg', vis_img)
 # visualize 3d poses
 vis_kps = np.array(output_pose_3d_list)
 vis_3d_multiple_skeleton(vis_kps, np.ones_like(vis_kps), skeleton, 'output_pose_3d (x,y,z: camera-centered. mm.)')
+
