@@ -36,14 +36,14 @@ class Config:
     pixel_std = (0.229, 0.224, 0.225)
 
     ## training config
-    embedding_size = 512
+    embedding_size = 2048
     lr_inc_epoch = 5
     lr_dec_epoch = [15, 19]
     end_epoch = 25
     lr = 1e-3
     lr_dec_factor = 10
     batch_size = 64
-    pre_train = True
+    pre_train = False
     pre_train_name = 'mobilenetv2_lsp.pth.tar'
 
     ## testing config

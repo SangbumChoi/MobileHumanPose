@@ -10,7 +10,8 @@ from torchsummary import summary
 BACKBONE_DICT = {
     'GhostNet': GhostNet, 'MobileNetV3': MobileNetV3,
     'MobileNeXt': MobileNeXt, 'MobileNetV2': MobileNetV2,
-    'MNasNet':MNasNet
+    'MNasNet':MNasNet,
+    'ResNet50':ResNet50
     }
 
 HEAD_DICT = {'HeadNet': HeadNet, 'Custom1' : CustomNet1, 'Custom2' : CustomNet2, 'PartNet': PartNet
