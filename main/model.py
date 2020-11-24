@@ -14,7 +14,7 @@ BACKBONE_DICT = {
     'ResNet50':ResNet50
     }
 
-HEAD_DICT = {'HeadNet': HeadNet, 'Custom1' : CustomNet1, 'Custom2' : CustomNet2, 'PartNet': PartNet
+HEAD_DICT = {'HeadNet': HeadNet, 'Custom1' : CustomNet1, 'Custom2' : CustomNet2, 'PartNet': PartNet, 'PartNet2' : PartNet2
              }
 
 def soft_argmax(heatmaps, joint_num):

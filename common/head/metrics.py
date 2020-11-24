@@ -292,3 +292,101 @@ class PartNet(nn.Module):
                 if isinstance(m, nn.Conv2d):
                     nn.init.normal_(m.weight, std=0.001)
                     nn.init.constant_(m.bias, 0)
+
+class PartNet2(nn.Module):
+
+    def __init__(self, in_features, joint_num):
+        self.inplanes = in_features
+        self.outplanes = 256
+        self.ratio = [1/4, 2/4]
+
+        self.hidplanes_s = _make_divisible(int(self.outplanes * self.ratio[0]), 8)
+        self.hidplanes_l = _make_divisible(int(self.outplanes * self.ratio[1]), 8)
+
+        super(PartNet2, self).__init__()
+
+        self.deconv_layer_1_s = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.inplanes, out_channels=self.hidplanes_s, kernel_size=3, stride=1, padding=1,
+                      groups=1, bias=False),
+            nn.BatchNorm2d(self.hidplanes_s),
+            nn.ReLU(inplace=True))
+        self.deconv_layer_1_l = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.inplanes, out_channels=self.hidplanes_l, kernel_size=3, stride=1, padding=1,
+                      groups=1, bias=False),
+            nn.BatchNorm2d(self.hidplanes_l),
+            nn.ReLU(inplace=True))
+        self.deconv_layer_2_s = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.hidplanes_s, out_channels=self.hidplanes_s, kernel_size=3, stride=1, padding=1,
+                      groups=self.hidplanes_s, bias=False),
+            nn.BatchNorm2d(self.hidplanes_s),
+            nn.ReLU(inplace=True))
+        self.deconv_layer_2_l = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.hidplanes_l, out_channels=self.hidplanes_l, kernel_size=3, stride=1, padding=1,
+                      groups=self.hidplanes_l, bias=False),
+            nn.BatchNorm2d(self.hidplanes_l),
+            nn.ReLU(inplace=True))
+        self.deconv_layer_3_s = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.hidplanes_s, out_channels=self.hidplanes_s, kernel_size=3, stride=1, padding=1,
+                      groups=self.hidplanes_s, bias=False),
+            nn.BatchNorm2d(self.hidplanes_s),
+            nn.ReLU(inplace=True))
+        self.deconv_layer_3_l = nn.Sequential(
+            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.Conv2d(in_channels=self.hidplanes_l, out_channels=self.hidplanes_l, kernel_size=3, stride=1, padding=1,
+                      groups=self.hidplanes_l, bias=False),
+            nn.BatchNorm2d(self.hidplanes_l),
+            nn.ReLU(inplace=True))
+        self.final_layer_s = nn.Conv2d(
+            in_channels=self.hidplanes_s,
+            out_channels=int(joint_num * cfg.depth_dim * self.ratio[0]),
+            kernel_size=1,
+            stride=1,
+            padding=0
+        )
+        self.final_layer_l = nn.Conv2d(
+            in_channels=self.hidplanes_l,
+            out_channels=int(joint_num * cfg.depth_dim * self.ratio[1]),
+            kernel_size=1,
+            stride=1,
+            padding=0
+        )
+
+    def forward(self, x):
+        xl = self.deconv_layer_1_l(x)
+        xs1 = self.deconv_layer_1_s(x)
+        xs2 = self.deconv_layer_1_s(x)
+        xl = self.deconv_layer_2_l(xl)
+        xs1 = self.deconv_layer_2_s(xs1)
+        xs2 = self.deconv_layer_2_s(xs2)
+        xl = self.deconv_layer_3_l(xl)
+        xs1 = self.deconv_layer_3_s(xs1)
+        xs2 = self.deconv_layer_3_s(xs2)
+        xl = self.final_layer_l(xl)
+        xs1 = self.final_layer_s(xs1)
+        xs2 = self.final_layer_s(xs2)
+
+        x = torch.cat((xl, xs1, xs2), dim=1)
+        return x
+
+    def init_weights(self):
+        deconv_layers = [self.deconv_layer_1_l, self.deconv_layer_1_s,
+                  self.deconv_layer_2_l, self.deconv_layer_2_s,
+                  self.deconv_layer_3_l, self.deconv_layer_3_s]
+        final_layers = [self.final_layer_l, self.final_layer_s]
+        for layer in deconv_layers:
+            for name, m in layer.named_modules():
+                if isinstance(m, nn.ConvTranspose2d):
+                    nn.init.normal_(m.weight, std=0.001)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+        for layer in final_layers:
+            for m in layer.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.normal_(m.weight, std=0.001)
+                    nn.init.constant_(m.bias, 0)
