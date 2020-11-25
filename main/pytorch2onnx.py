@@ -8,7 +8,7 @@ import torch.nn.utils.prune as prune
 
 from torchsummary import summary
 from torch.nn.parallel.data_parallel import DataParallel
-from model import get_pose_net
+from base import Transformer
 from onnx_tf.backend import prepare
 from config import cfg
 
@@ -37,15 +37,11 @@ args = parse_args()
 
 dummy_input = torch.randn(1, 3, 256, 256, device='cuda')
 
-pytorch_model = get_pose_net(args.backbone, args.frontbone, False, args.joint)
-pytorch_model = DataParallel(pytorch_model).cuda()
-
-#Load the pretrained model
-pytorch_model.load_state_dict(torch.load(args.modelpath)['network'])
+transformer = Transformer(args.backbone, args.frontbone, args.joint, args.modelpath)
 
 #Time to transfer weights
-single_pytorch_model = pytorch_model.module
-single_pytorch_model.eval()
+single_pytorch_model = transformer._make_model()
+
 summary(single_pytorch_model, (3, 256, 256))
 
 ONNX_PATH="../output/baseline.onnx"

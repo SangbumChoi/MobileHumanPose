@@ -5,7 +5,6 @@ import os.path as osp
 import numpy as np
 import torch
 from base import Trainer
-from base import Tester
 from utils.pose_utils import flip
 import torch.backends.cudnn as cudnn
 

@@ -180,3 +180,23 @@ class Tester(Base):
     def _evaluate(self, preds, result_save_path):
         eval_summary = self.testset.evaluate(preds, result_save_path)
         self.logger.info('{}'.format(eval_summary))
+
+
+class Transformer(Base):
+
+    def __init__(self, backbone, frontbone, jointnum, modelpath):
+        super(Transformer, self).__init__(log_name='transformer_logs.txt')
+        self.backbone = backbone
+        self.frontbone = frontbone
+        self.jointnum = jointnum
+        self.modelpath = modelpath
+
+    def _make_model(self):
+        # prepare network
+        self.logger.info("Creating graph and optimizer...")
+        model = get_pose_net(self.backbone, self.frontbone, False, self.jointnum)
+        model = DataParallel(model).cuda()
+        model.load_state_dict(torch.load(self.modelpath)['network'])
+        single_pytorch_model = model.module
+        single_pytorch_model.eval()
+        self.model = single_pytorch_model
