@@ -6,11 +6,11 @@ import onnxruntime as ort
 import tensorflow as tf
 import torch.nn.utils.prune as prune
 
+from config import cfg
 from torchsummary import summary
 from torch.nn.parallel.data_parallel import DataParallel
 from base import Transformer
 from onnx_tf.backend import prepare
-from config import cfg
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -38,9 +38,9 @@ args = parse_args()
 dummy_input = torch.randn(1, 3, 256, 256, device='cuda')
 
 transformer = Transformer(args.backbone, args.frontbone, args.joint, args.modelpath)
+transformer._make_model()
 
-#Time to transfer weights
-single_pytorch_model = transformer._make_model()
+single_pytorch_model = transformer.model
 
 summary(single_pytorch_model, (3, 256, 256))
 
