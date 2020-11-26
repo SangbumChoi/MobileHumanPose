@@ -75,9 +75,10 @@ class Trainer(Base):
     def set_lr(self, epoch):
         for e in cfg.lr_dec_epoch:
             if epoch < e:
-                if epoch < cfg.lr_inc_epoch - 1:
-                    for g in self.optimizer.param_groups:
-                        g['lr'] = cfg.lr * (epoch + 1) / cfg.lr_inc_epoch
+                if cfg.warming_up == True:
+                    if epoch < cfg.lr_inc_epoch - 1:
+                        for g in self.optimizer.param_groups:
+                            g['lr'] = cfg.lr * (epoch + 1) / cfg.lr_inc_epoch
                 break
         if epoch < cfg.lr_dec_epoch[-1]:
             idx = cfg.lr_dec_epoch.index(e)

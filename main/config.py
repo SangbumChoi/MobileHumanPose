@@ -37,8 +37,9 @@ class Config:
 
     ## training config
     embedding_size = 2048
+    warming_up = False
     lr_inc_epoch = 5
-    lr_dec_epoch = [15, 19]
+    lr_dec_epoch = [17, 21]
     end_epoch = 25
     lr = 1e-3
     lr_dec_factor = 10
