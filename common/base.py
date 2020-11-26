@@ -169,7 +169,7 @@ class Tester(Base):
         
         # prepare network
         # self.logger.info("Creating graph...")
-        model = get_pose_net(self.backbone, self.frontbone, True, self.joint_num)
+        model = get_pose_net(self.backbone, self.frontbone, False, self.joint_num)
         model = DataParallel(model).cuda()
         ckpt = torch.load(model_path)
         model.load_state_dict(ckpt['network'])
