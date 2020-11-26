@@ -5,7 +5,7 @@ from backbone import *
 from head import *
 from config import cfg
 import os.path as osp
-from torchsummary import summary
+from torchvision.models.resnet import model_urls
 
 BACKBONE_DICT = {
     'GhostNet': GhostNet, 'MobileNetV3': MobileNetV3,
@@ -79,15 +79,25 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
     print("=" * 60)
     if is_train:
         if cfg.pre_train:
-            backbone_dict = backbone.state_dict()
-            file_path = osp.join(cfg.pretrain_dir, cfg.pre_train_name)
-            pretrained_dict = torch.load(file_path)['state_dict']
-            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in backbone_dict}
-            backbone_dict.update(pretrained_dict)
-            backbone.load_state_dict(backbone_dict)
-            print("=" * 60)
-            print("{} has been successfully loaded".format(cfg.pre_train_name))
-            print("=" * 60)
+            if backbone_str == 'ResNet50':
+                org_resnet = torch.utils.model_zoo.load_url(model_urls['resnet50'])
+                # drop orginal resnet fc layer, add 'None' in case of no fc layer, that will raise error
+                org_resnet.pop('fc.weight', None)
+                org_resnet.pop('fc.bias', None)
+                backbone.load_state_dict(org_resnet)
+                print("=" * 60)
+                print("Initialize resnet from model zoo")
+                print("=" * 60)
+            else:
+                backbone_dict = backbone.state_dict()
+                file_path = osp.join(cfg.pretrain_dir, cfg.pre_train_name)
+                pretrained_dict = torch.load(file_path)['state_dict']
+                pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in backbone_dict}
+                backbone_dict.update(pretrained_dict)
+                backbone.load_state_dict(backbone_dict)
+                print("=" * 60)
+                print("{} has been successfully loaded".format(cfg.pre_train_name))
+                print("=" * 60)
         else:
             backbone.init_weights()
             print("=" * 60)
