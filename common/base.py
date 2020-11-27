@@ -122,7 +122,6 @@ class Trainer(Base):
 
         self.itr_per_epoch = math.ceil(len(trainset_loader) / cfg.num_gpus / cfg.batch_size)
         self.batch_generator = DataLoader(dataset=trainset_loader, batch_size=cfg.num_gpus*cfg.batch_size, shuffle=True, num_workers=cfg.num_thread, pin_memory=True)
-        print(self.itr_per_epoch, self.batch_generator, cfg.num_gpus*cfg.batch_size)
 
     def _make_model(self):
         # prepare network
@@ -199,6 +198,9 @@ class Transformer(Base):
         model = get_pose_net(self.backbone, self.frontbone, False, self.jointnum)
         model = DataParallel(model).cuda()
         model.load_state_dict(torch.load(self.modelpath)['network'])
-        single_pytorch_model = model.module
-        single_pytorch_model.eval()
-        self.model = single_pytorch_model
+        if cfg.teacher_train == True:
+            self.model = model
+        elif cfg.pre_train == True:
+            single_pytorch_model = model.module
+            single_pytorch_model.eval()
+            self.model = single_pytorch_model

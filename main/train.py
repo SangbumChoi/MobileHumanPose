@@ -4,7 +4,7 @@ from tqdm import tqdm
 import os.path as osp
 import numpy as np
 import torch
-from base import Trainer
+from base import Trainer, Transformer
 from utils.pose_utils import flip
 import torch.backends.cudnn as cudnn
 
@@ -39,11 +39,8 @@ def main():
     trainer._make_batch_generator()
     trainer._make_model()
     if cfg.teacher_train == True:
-        teacher = Trainer(cfg.teacher_backbone, cfg.teacher_frontbone)
-        teacher._make_model()
         file_path = osp.join(cfg.pretrain_dir, cfg.teacher_train_name)
-        ckpt = torch.load(file_path)
-        teacher.model.load_state_dict(ckpt['network'])
+        teacher = Transformer(cfg.teacher_backbone, cfg.teacher_frontbone, 18, file_path)
     # train
     for epoch in range(trainer.start_epoch, cfg.end_epoch):
         
