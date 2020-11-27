@@ -122,7 +122,8 @@ class Trainer(Base):
 
         self.itr_per_epoch = math.ceil(len(trainset_loader) / cfg.num_gpus / cfg.batch_size)
         self.batch_generator = DataLoader(dataset=trainset_loader, batch_size=cfg.num_gpus*cfg.batch_size, shuffle=True, num_workers=cfg.num_thread, pin_memory=True)
-   
+        print(self.itr_per_epoch, self.batch_generator, cfg.num_gpus*cfg.batch_size)
+
     def _make_model(self):
         # prepare network
         self.logger.info("Creating graph and optimizer...")
