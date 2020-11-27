@@ -66,7 +66,7 @@ class ResPoseNet(nn.Module):
 
 def get_pose_net(backbone_str, head_str, is_train, joint_num):
     INPUT_SIZE = cfg.input_shape
-    EMBEDDING_SIZE = cfg.embedding_size # feature dimension
+    EMBEDDING_SIZE = cfg.embedding_size if not cfg.teacher_train else 2048 # feature dimension
     assert INPUT_SIZE == (256, 256)
     backbone = BACKBONE_DICT[backbone_str](INPUT_SIZE, EMBEDDING_SIZE)
     print("=" * 60)
