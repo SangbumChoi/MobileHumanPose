@@ -41,6 +41,7 @@ def main():
     if cfg.teacher_train == True:
         file_path = osp.join(cfg.pretrain_dir, cfg.teacher_train_name)
         teacher = Transformer(cfg.teacher_backbone, cfg.teacher_frontbone, 18, file_path)
+        teacher._make_model()
     # train
     for epoch in range(trainer.start_epoch, cfg.end_epoch):
         
