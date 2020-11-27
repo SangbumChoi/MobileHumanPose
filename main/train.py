@@ -38,7 +38,12 @@ def main():
     trainer = Trainer(args.backbone, args.frontbone)
     trainer._make_batch_generator()
     trainer._make_model()
-
+    if cfg.teacher_train == True:
+        teacher = Trainer(cfg.teacher_backbone, cfg.teacher_frontbone)
+        teacher._make_model()
+        file_path = osp.join(cfg.pretrain_dir, cfg.teacher_train_name)
+        ckpt = torch.load(file_path)
+        teacher.model.load_state_dict(ckpt['network'])
     # train
     for epoch in range(trainer.start_epoch, cfg.end_epoch):
         
@@ -53,7 +58,13 @@ def main():
             # forward
             trainer.optimizer.zero_grad()
             target = {'coord': joint_img, 'vis': joint_vis, 'have_depth': joints_have_depth}
-            loss_coord = trainer.model(input_img, target)
+            if cfg.teacher_train == True:
+                student_coord = trainer.model(input_img, target)
+                target['coord'] = teacher.model(input_img, None)
+                teacher_coord = trainer.model(input_img, target)
+                loss_coord = ( teacher_coord + student_coord ) / 2
+            else :
+                loss_coord = trainer.model(input_img, target)
             loss_coord = loss_coord.mean()
 
             # backward

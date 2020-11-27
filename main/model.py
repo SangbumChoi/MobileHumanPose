@@ -57,7 +57,7 @@ class ResPoseNet(nn.Module):
             target_coord = target['coord']
             target_vis = target['vis']
             target_have_depth = target['have_depth']
-            
+
             ## coordinate loss
             loss_coord = torch.abs(coord - target_coord) * target_vis
             loss_coord = (loss_coord[:,:,0] + loss_coord[:,:,1] + loss_coord[:,:,2] * target_have_depth)/3.
@@ -91,7 +91,7 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
             else:
                 backbone_dict = backbone.state_dict()
                 file_path = osp.join(cfg.pretrain_dir, cfg.pre_train_name)
-                pretrained_dict = torch.load(file_path)['state_dict']
+                pretrained_dict = torch.load(file_path)['network']
                 pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in backbone_dict}
                 backbone_dict.update(pretrained_dict)
                 backbone.load_state_dict(backbone_dict)

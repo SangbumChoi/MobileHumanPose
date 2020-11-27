@@ -46,6 +46,10 @@ class Config:
     batch_size = 64
     pre_train = False
     pre_train_name = 'mobilenetv2_lsp.pth.tar'
+    teacher_train = True
+    teacher_backbone = 'ResNet50'
+    teacher_frontbone = 'PartNet'
+    teacher_train_name = 'exp18_snapshot_22.pth.tar'
 
     ## testing config
     test_batch_size = 32
