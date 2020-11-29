@@ -88,6 +88,14 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
                 print("=" * 60)
                 print("Initialize resnet from model zoo")
                 print("=" * 60)
+            elif backbone_str == 'MobileNetV2':
+                org_mobilenet = torch.utils.model_zoo.load_url(model_urls['mobilenet_v2'])
+                org_mobilenet.pop('fc.weight', None)
+                org_mobilenet.pop('fc.bias', None)
+                backbone.load_state_dict(org_mobilenet)
+                print("=" * 60)
+                print("Initialize mobilenetv2 from model zoo")
+                print("=" * 60)
             else:
                 backbone_dict = backbone.state_dict()
                 file_path = osp.join(cfg.pretrain_dir, cfg.pre_train_name)
