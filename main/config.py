@@ -10,7 +10,7 @@ class Config:
     # 3D: Human36M, MuCo
     # 2D: MSCOCO, MPII 
     trainset_3d = ['Human36M']
-    trainset_2d = ['MPII', 'MSCOCO']
+    trainset_2d = ['MPII']
 
     # testing set
     # Human36M, MuPoTS, MSCOCO
@@ -36,7 +36,7 @@ class Config:
     pixel_std = (0.229, 0.224, 0.225)
 
     ## training config
-    embedding_size = 2048
+    embedding_size = 512
     warming_up = False
     lr_inc_epoch = 5
     lr_dec_epoch = [17, 21]
@@ -46,7 +46,7 @@ class Config:
     batch_size = 64
     pre_train = False
     pre_train_name = 'mobilenetv2_lsp.pth.tar'
-    teacher_train = True
+    teacher_train = False
     teacher_backbone = 'ResNet50'
     teacher_frontbone = 'PartNet'
     teacher_train_name = 'exp18_snapshot_22.pth.tar'

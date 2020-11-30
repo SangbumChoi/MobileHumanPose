@@ -7,13 +7,13 @@ from config import cfg
 import os.path as osp
 
 model_urls = {
-    'mobilenet_v2': 'https://download.pytorch.org/models/mobilenet_v2-b0353104.pth',
-    'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
-    'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
-    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
-    'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
-    'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
-    'resnext50_32x4d': 'https://download.pytorch.org/models/resnext50_32x4d-7cdf4587.pth',
+    'MobileNetV2': 'https://download.pytorch.org/models/mobilenet_v2-b0353104.pth',
+    'ResNet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
+    'ResNet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
+    'ResNet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
+    'ResNet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
+    'ResNet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
+    'ResNext50_32x4d': 'https://download.pytorch.org/models/resnext50_32x4d-7cdf4587.pth',
     'resnext101_32x8d': 'https://download.pytorch.org/models/resnext101_32x8d-8ba56ff5.pth',
     'wide_resnet50_2': 'https://download.pytorch.org/models/wide_resnet50_2-95faca4d.pth',
     'wide_resnet101_2': 'https://download.pytorch.org/models/wide_resnet101_2-32ee1156.pth',
@@ -91,37 +91,19 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
     print("=" * 60)
     if is_train:
         if cfg.pre_train:
-            if backbone_str == 'ResNet50':
-                org_resnet = torch.utils.model_zoo.load_url(model_urls['resnet50'])
-                # drop orginal resnet fc layer, add 'None' in case of no fc layer, that will raise error
-                org_resnet.pop('fc.weight', None)
-                org_resnet.pop('fc.bias', None)
-                backbone.load_state_dict(org_resnet)
-                print("=" * 60)
-                print("Initialize resnet from model zoo")
-                print("=" * 60)
-            elif backbone_str == 'MobileNetV2':
-                org_mobilenet = torch.utils.model_zoo.load_url(model_urls['mobilenet_v2'])
-                org_mobilenet.pop('fc.weight', None)
-                org_mobilenet.pop('fc.bias', None)
-                backbone.load_state_dict(org_mobilenet)
-                print("=" * 60)
-                print("Initialize mobilenetv2 from model zoo")
-                print("=" * 60)
-            else:
-                backbone_dict = backbone.state_dict()
+            if cfg.pre_train_name is not None:
                 file_path = osp.join(cfg.pretrain_dir, cfg.pre_train_name)
                 pretrained_dict = torch.load(file_path)['network']
-                pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in backbone_dict}
-                backbone_dict.update(pretrained_dict)
-                backbone.load_state_dict(backbone_dict)
-                print("=" * 60)
-                print("{} has been successfully loaded".format(cfg.pre_train_name))
-                print("=" * 60)
-        else:
-            backbone.init_weights()
+                backbone.init_weights(model_urls[backbone_str], pretrained_dict)
+            else:
+                backbone.init_weights(model_urls[backbone_str], None)
             print("=" * 60)
-            print("random initialization")
+            print("{} pretrain loaded".format(backbone_str))
+            print("=" * 60)
+        else:
+            backbone.init_weights(None)
+            print("=" * 60)
+            print("{} random initialized".format(backbone_str))
             print("=" * 60)
         head.init_weights()
 
