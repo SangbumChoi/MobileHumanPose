@@ -185,31 +185,33 @@ class MobileNetV3(nn.Module):
 
         # building last several layers
         self.conv = conv_1x1_bn(input_channel, embedding_size)
-        '''
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        output_channel = {'large': 1280, 'small': 1024}
-        output_channel = _make_divisible(output_channel[mode] * width_mult, 8) if width_mult > 1.0 else output_channel[mode]
-        self.classifier = nn.Sequential(
-            nn.Linear(exp_size, output_channel),
-            h_swish(),
-            nn.Dropout(0.2),
-            nn.Linear(output_channel, num_classes),
-        )
-        '''
 
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-                if m.bias is not None:
+    def init_weights(self, pretrain = None, pretrain_dict = None):
+        if pretrain is not None :
+            if pretrain_dict is not None:
+                pretrain_dict = pretrain_dict
+                pretrained_dict = {k: v for k, v in pretrain_dict.items() if
+                                   k in pretrain_dict and v.size() == pretrain_dict[k].size()}
+                self.load_state_dict(pretrained_dict, strict=False)
+            else:
+                model_dict = self.state_dict()
+                state_dict = torch.utils.model_zoo.load_url(pretrain, progress=True)
+                pretrained_dict = {k: v for k, v in state_dict.items() if
+                                   k in model_dict and v.size() == model_dict[k].size()}
+                self.load_state_dict(pretrained_dict, strict=False)
+        else :
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                    if m.bias is not None:
+                        m.bias.data.zero_()
+                elif isinstance(m, nn.BatchNorm2d):
+                    m.weight.data.fill_(1)
                     m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-                if m.bias is not None:
-                    m.bias.data.zero_()
+                elif isinstance(m, nn.Linear):
+                    nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                    if m.bias is not None:
+                        m.bias.data.zero_()
 
     def forward(self, x):
         x = self.features(x)
