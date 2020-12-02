@@ -1,6 +1,17 @@
 import torch
+import math
+
 from torch import nn
-from torchsummary import summary
+
+class ConvBNReLU(nn.Sequential):
+    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1):
+        padding = (kernel_size - 1) // 2
+        super(ConvBNReLU, self).__init__(
+            nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, groups=groups, bias=False),
+            nn.BatchNorm2d(out_planes),
+            nn.ReLU6(inplace=True)
+        )
+
 
 def _make_divisible(v, divisor, min_value=None):
     """
@@ -8,6 +19,10 @@ def _make_divisible(v, divisor, min_value=None):
     It ensures that all layers have a channel number that is divisible by 8
     It can be seen here:
     https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
+    :param v:
+    :param divisor:
+    :param min_value:
+    :return:
     """
     if min_value is None:
         min_value = divisor
@@ -17,119 +32,190 @@ def _make_divisible(v, divisor, min_value=None):
         new_v += divisor
     return new_v
 
-class SandGlass(nn.Module):
-    def __init__(self, input_dim, output_dim, stride, t):
-        super(SandGlass, self).__init__()
 
-        self.stride = stride
+def conv_3x3_bn(inp, oup, stride):
+    return nn.Sequential(
+        nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
+        nn.BatchNorm2d(oup),
+        nn.ReLU6(inplace=True)
+    )
+
+
+def conv_1x1_bn(inp, oup):
+    return nn.Sequential(
+        nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup),
+        nn.ReLU6(inplace=True)
+    )
+
+
+class SGBlock(nn.Module):
+    def __init__(self, inp, oup, stride, expand_ratio, keep_3x3=False):
+        super(SGBlock, self).__init__()
         assert stride in [1, 2]
 
-        self.residual = True if stride==1 and input_dim==output_dim else False
+        hidden_dim = inp // expand_ratio
+        if hidden_dim < oup / 6.:
+            hidden_dim = math.ceil(oup / 6.)
+            hidden_dim = _make_divisible(hidden_dim, 16)  # + 16
 
-        hid_dim = input_dim // t
-
-        layers = []
-        # Residual Sub-Block 1
-        layers.extend([
-            nn.Conv2d(input_dim, input_dim, kernel_size=3, stride=1, padding=1, groups=input_dim, bias=False),
-            nn.BatchNorm2d(input_dim),
-            nn.ReLU6(inplace=True)
-        ])
-        # Residual Sub-Block 2
-        layers.extend([
-            nn.Conv2d(input_dim, hid_dim, kernel_size=1, stride=1, padding=0, groups=1, bias=False),
-            nn.BatchNorm2d(hid_dim)
-        ])
-        # Residual Sub-Block 3
-        layers.extend([
-            nn.Conv2d(hid_dim, output_dim, kernel_size=1, stride=1, padding=0, groups=1, bias=False),
-            nn.BatchNorm2d(output_dim),
-            nn.ReLU6(inplace=True)
-        ])
-        # Residual Sub-Block 4
-        layers.extend([
-            nn.Conv2d(output_dim, output_dim, kernel_size=3, stride=stride, padding=1, groups=output_dim, bias=False),
-            nn.BatchNorm2d(output_dim)
-        ])
-        self.conv = nn.Sequential(*layers)
+        # self.relu = nn.ReLU6(inplace=True)
+        self.identity = False
+        self.identity_div = 1
+        self.expand_ratio = expand_ratio
+        if expand_ratio == 2:
+            self.conv = nn.Sequential(
+                # dw
+                nn.Conv2d(inp, inp, 3, 1, 1, groups=inp, bias=False),
+                nn.BatchNorm2d(inp),
+                nn.ReLU6(inplace=True),
+                # pw-linear
+                nn.Conv2d(inp, hidden_dim, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(hidden_dim),
+                # pw-linear
+                nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup),
+                nn.ReLU6(inplace=True),
+                # dw
+                nn.Conv2d(oup, oup, 3, stride, 1, groups=oup, bias=False),
+                nn.BatchNorm2d(oup),
+            )
+        elif inp != oup and stride == 1 and keep_3x3 == False:
+            self.conv = nn.Sequential(
+                # pw-linear
+                nn.Conv2d(inp, hidden_dim, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(hidden_dim),
+                # pw-linear
+                nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup),
+                nn.ReLU6(inplace=True),
+            )
+        elif inp != oup and stride == 2 and keep_3x3 == False:
+            self.conv = nn.Sequential(
+                # pw-linear
+                nn.Conv2d(inp, hidden_dim, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(hidden_dim),
+                # pw-linear
+                nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup),
+                nn.ReLU6(inplace=True),
+                # dw
+                nn.Conv2d(oup, oup, 3, stride, 1, groups=oup, bias=False),
+                nn.BatchNorm2d(oup),
+            )
+        else:
+            if keep_3x3 == False:
+                self.identity = True
+            self.conv = nn.Sequential(
+                # dw
+                nn.Conv2d(inp, inp, 3, 1, 1, groups=inp, bias=False),
+                nn.BatchNorm2d(inp),
+                nn.ReLU6(inplace=True),
+                # pw
+                nn.Conv2d(inp, hidden_dim, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(hidden_dim),
+                # nn.ReLU6(inplace=True),
+                # pw
+                nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup),
+                nn.ReLU6(inplace=True),
+                # dw
+                nn.Conv2d(oup, oup, 3, 1, 1, groups=oup, bias=False),
+                nn.BatchNorm2d(oup),
+            )
 
     def forward(self, x):
         out = self.conv(x)
-        if self.residual == True:
-            out = x + out
-            return out
+
+        if self.identity:
+            return out + x
         else:
             return out
 
+
+def sg_block_extra(inp, oup, stride, expand_ratio, last=False):
+    hidden_dim = int(inp * expand_ratio)
+    conv = nn.Sequential(
+        # dw
+        nn.Conv2d(inp, inp, 3, stride, 1, groups=inp, bias=False),
+        nn.BatchNorm2d(inp),
+        nn.ReLU6(inplace=True),
+        # pw
+        nn.Conv2d(inp, hidden_dim, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(hidden_dim),
+        # pw
+        nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup),
+        nn.ReLU6(inplace=True),
+    )
+    return conv
+
+
 class MobileNeXt(nn.Module):
-    def __init__(self,
-                 input_size,
-                 embedding_size=512,
-                 width_mult=1.0,
-                 divisor=8,
-                 sand_glass_setting=None):
+    def __init__(self, input_size, embedding_size=512, width_mult=1.):
         super(MobileNeXt, self).__init__()
         assert input_size[1] in [256]
-
-        block = SandGlass
-
-        init_channel = 32
         last_channel = embedding_size
+        print(last_channel * max(1.0, width_mult))
+        self.last_channel = _make_divisible(last_channel * max(1.0, width_mult), 4 if width_mult == 0.1 else 8)
 
-        init_channel = _make_divisible(init_channel * width_mult, divisor)
-        self.last_channel = _make_divisible(last_channel * max(1.0, width_mult), divisor)
+        # setting of inverted residual blocks
+        self.cfgs = [
+            # t, c, n, s
+            [2, 96, 1, 2],
+            [6, 144, 1, 1],
+            [6, 192, 3, 2],
+            [6, 288, 3, 2],
+            [6, 384, 4, 1],
+            [6, self.last_channel / width_mult, 1, 2]
+        ]
 
-        if sand_glass_setting is None:
-            sand_glass_setting = [
-                # t, c,  b, s
-                [2, 96, 1, 2],
-                [6, 144, 1, 1],
-                [6, 192, 3, 2],
-                [6, 288, 3, 2],
-                [6, 384, 4, 1],
-                [6, 576, 4, 2],
-                [6, 960, 2, 1],
-                [6, self.last_channel / width_mult, 1, 1],
-            ]
-        self.block1 = nn.Sequential(
-            nn.Conv2d(3, init_channel, kernel_size=3, stride=2, padding=1, groups=1, bias=False),
-            nn.BatchNorm2d(init_channel),
-            nn.ReLU6(inplace=True)
-        )
+        # building first layer
+        input_channel = _make_divisible(32 * width_mult, 4 if width_mult == 0.1 else 8)
+        layers = [conv_3x3_bn(3, input_channel, 2)]
+        # building inverted residual blocks
+        block = SGBlock
+        for t, c, n, s in self.cfgs:
+            output_channel = _make_divisible(c * width_mult, 4 if width_mult == 0.1 else 8)
+            if c == 1280 and width_mult < 1:
+                output_channel = 1280
+            layers.append(block(input_channel, output_channel, s, t, n == 1 and s == 1))
+            input_channel = output_channel
+            for i in range(n - 1):
+                layers.append(block(input_channel, output_channel, 1, t))
+                input_channel = output_channel
+        self.features = nn.Sequential(*layers)
 
-        layers = []
-        for t, c, b, s in sand_glass_setting:
-            output_channel = _make_divisible(c, divisor)
-            for i in range(b):
-                stride = s if i == 0 else 1
-                layers.append(block(init_channel, output_channel, stride, t))
-                init_channel = output_channel
-
-        self.sandglass_conv = nn.Sequential(*layers)
-
-    # weight initialization
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out')
-                if m.bias is not None:
-                    nn.init.zeros_(m.bias)
-            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-                nn.init.ones_(m.weight)
-                nn.init.zeros_(m.bias)
-            elif isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, 0, 0.01)
-                nn.init.zeros_(m.bias)
+    def init_weights(self, pretrain = None, pretrain_dict = None):
+        if pretrain is not None :
+            if pretrain_dict is not None:
+                pretrain_dict = pretrain_dict
+                pretrained_dict = {k: v for k, v in pretrain_dict.items() if
+                                   k in pretrain_dict and v.size() == pretrain_dict[k].size()}
+                self.load_state_dict(pretrained_dict, strict=False)
+            else:
+                model_dict = self.state_dict()
+                state_dict = torch.utils.model_zoo.load_url(pretrain, progress=True)
+                pretrained_dict = {k: v for k, v in state_dict.items() if
+                                   k in model_dict and v.size() == model_dict[k].size()}
+                self.load_state_dict(pretrained_dict, strict=False)
+        else :
+            # weight initialization
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                    m.weight.data.normal_(0, math.sqrt(2. / n))
+                    if m.bias is not None:
+                        m.bias.data.zero_()
+                elif isinstance(m, nn.BatchNorm2d):
+                    m.weight.data.fill_(1)
+                    m.bias.data.zero_()
+                elif isinstance(m, nn.Linear):
+                    m.weight.data.normal_(0, 0.01)
+                    m.bias.data.zero_()
 
     def forward(self, x):
-        x = self.block1(x)
-        x = self.sandglass_conv(x)
-        return x
 
-if __name__ == "__main__":
-    model = MobileNeXt()
-    print(model)
-    test_data = torch.rand(1, 3, 256, 256)
-    test_outputs = model(test_data)
-    print(test_outputs.size())
-    summary(model, (3, 256, 256))
+        x = self.features(x)
+
+        return x

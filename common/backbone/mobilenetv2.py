@@ -134,6 +134,7 @@ class MobileNetV2(nn.Module):
     def init_weights(self, pretrain = None, pretrain_dict = None):
         if pretrain is not None :
             if pretrain_dict is not None:
+                pretrain_dict = pretrain_dict['network']
                 pretrained_dict = {k: v for k, v in pretrain_dict.items() if
                                    k in pretrain_dict and v.size() == pretrain_dict[k].size()}
                 self.load_state_dict(pretrained_dict, strict=False)

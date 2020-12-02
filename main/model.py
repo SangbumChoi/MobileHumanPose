@@ -93,7 +93,7 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
         if cfg.pre_train:
             if cfg.pre_train_name is not None:
                 file_path = osp.join(cfg.pretrain_dir, cfg.pre_train_name)
-                pretrained_dict = torch.load(file_path)['network']
+                pretrained_dict = torch.load(file_path)
                 backbone.init_weights(model_urls[backbone_str], pretrained_dict)
             else:
                 backbone.init_weights(model_urls[backbone_str], None)
