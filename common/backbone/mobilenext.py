@@ -190,9 +190,11 @@ class MobileNeXt(nn.Module):
         if pretrain is not None :
             if pretrain_dict is not None:
                 pretrain_dict = pretrain_dict
+                model_dict = self.state_dict()
                 pretrained_dict = {k: v for k, v in pretrain_dict.items() if
                                    k in pretrain_dict and v.size() == pretrain_dict[k].size()}
-                self.load_state_dict(pretrained_dict, strict=False)
+                model_dict.update(pretrained_dict)
+                self.load_state_dict(model_dict, strict=False)
             else:
                 model_dict = self.state_dict()
                 state_dict = torch.utils.model_zoo.load_url(pretrain, progress=True)
