@@ -192,7 +192,7 @@ class MobileNeXt(nn.Module):
                 pretrain_dict = pretrain_dict
                 model_dict = self.state_dict()
                 pretrained_dict = {k: v for k, v in pretrain_dict.items() if
-                                   k in pretrain_dict and v.size() == pretrain_dict[k].size()}
+                                   k in model_dict and v.size() == model_dict[k].size()}
                 model_dict.update(pretrained_dict)
                 self.load_state_dict(model_dict, strict=False)
             else:
