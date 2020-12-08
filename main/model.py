@@ -23,6 +23,7 @@ BACKBONE_DICT = {
     'GhostNet': GhostNet, 'MobileNetV3': MobileNetV3,
     'MobileNeXt': MobileNeXt, 'MobileNetV2': MobileNetV2,
     'MNasNet':MNasNet,
+    'ResNet18':ResNet18,
     'ResNet50':ResNet50
     }
 
