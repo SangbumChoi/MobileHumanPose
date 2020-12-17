@@ -24,7 +24,8 @@ BACKBONE_DICT = {
     'MobileNeXt': MobileNeXt, 'MobileNetV2': MobileNetV2,
     'MNasNet':MNasNet,
     'ResNet18':ResNet18,
-    'ResNet50':ResNet50
+    'ResNet50':ResNet50,
+    'MGG':MobGG
     }
 
 HEAD_DICT = {'HeadNet': HeadNet, 'Custom1' : CustomNet1, 'Custom2' : CustomNet2, 'PartNet': PartNet, 'PartNet2' : PartNet2
@@ -63,7 +64,7 @@ class ResPoseNet(nn.Module):
         fm = self.backbone(input_img)
         hm = self.head(fm)
         coord = soft_argmax(hm, self.joint_num)
-        
+
         if target is None:
             return coord
         else:
@@ -74,7 +75,7 @@ class ResPoseNet(nn.Module):
             ## coordinate loss
             loss_coord = torch.abs(coord - target_coord) * target_vis
             loss_coord = (loss_coord[:,:,0] + loss_coord[:,:,1] + loss_coord[:,:,2] * target_have_depth)/3.
-            
+
             return loss_coord
 
 def get_pose_net(backbone_str, head_str, is_train, joint_num):
@@ -85,6 +86,10 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
     print("=" * 60)
     print("{} Backbone Generated".format(backbone_str))
     print("=" * 60)
+
+    if backbone_str == 'MGG':
+        model = backbone(256, 256)
+        return model
 
     head = HEAD_DICT[head_str](in_features = EMBEDDING_SIZE, joint_num = joint_num)
     print("=" * 60)

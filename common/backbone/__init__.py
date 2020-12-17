@@ -5,3 +5,4 @@ from backbone.mobilenetv2 import *
 from backbone.mnasnet import *
 from backbone.resnet18 import *
 from backbone.resnet50 import *
+from backbone.mgg import *
