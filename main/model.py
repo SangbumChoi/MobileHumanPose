@@ -55,7 +55,7 @@ def soft_argmax(heatmaps, joint_num):
 
 class ResPoseNet(nn.Module):
     def __init__(self, backbone, head, joint_num):
-        super(ResPoseNet, self).__init__()
+        super(CustomNet, self).__init__()
         self.backbone = backbone
         self.head = head
         self.joint_num = joint_num
@@ -64,6 +64,29 @@ class ResPoseNet(nn.Module):
         fm = self.backbone(input_img)
         hm = self.head(fm)
         coord = soft_argmax(hm, self.joint_num)
+
+        if target is None:
+            return coord
+        else:
+            target_coord = target['coord']
+            target_vis = target['vis']
+            target_have_depth = target['have_depth']
+
+            ## coordinate loss
+            loss_coord = torch.abs(coord - target_coord) * target_vis
+            loss_coord = (loss_coord[:,:,0] + loss_coord[:,:,1] + loss_coord[:,:,2] * target_have_depth)/3.
+
+            return loss_coord
+
+class CustomNet(nn.Module):
+    def __init__(self, backbone, joint_num):
+        super(CustomNet, self).__init__()
+        self.backbone = backbone
+        self.joint_num = joint_num
+
+    def forward(self, input_img, target=None):
+        fm = self.backbone(input_img)
+        coord = soft_argmax(fm, self.joint_num)
 
         if target is None:
             return coord
@@ -88,7 +111,7 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
     print("=" * 60)
 
     if backbone_str == 'MGG':
-        model = backbone(256, 256)
+        model = CustomNet(BACKBONE_DICT[backbone_str](INPUT_SIZE), joint_num)
         return model
 
     head = HEAD_DICT[head_str](in_features = EMBEDDING_SIZE, joint_num = joint_num)
@@ -113,5 +136,5 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
             print("=" * 60)
         head.init_weights()
 
-    model = ResPoseNet(backbone, head, joint_num)
+    model = CustomNet(backbone, head, joint_num)
     return model
