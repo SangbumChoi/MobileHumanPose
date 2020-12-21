@@ -25,7 +25,8 @@ BACKBONE_DICT = {
     'MNasNet':MNasNet,
     'ResNet18':ResNet18,
     'ResNet50':ResNet50,
-    'MGG':MobGG
+    'MGG':MobGG,
+    'MGG_NO_CONCAT':MobGG_No_Concat
     }
 
 HEAD_DICT = {'HeadNet': HeadNet, 'Custom1' : CustomNet1, 'Custom2' : CustomNet2, 'PartNet': PartNet, 'PartNet2' : PartNet2
@@ -110,7 +111,7 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
     print("{} Backbone Generated".format(backbone_str))
     print("=" * 60)
 
-    if backbone_str == 'MGG':
+    if backbone_str == 'MGG' or 'MGG_NO_CONCAT':
         model = CustomNet(BACKBONE_DICT[backbone_str](INPUT_SIZE), joint_num)
         return model
 
