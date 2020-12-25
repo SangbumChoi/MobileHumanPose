@@ -30,6 +30,7 @@ class Config:
     ## input, output
     input_shape = (256, 256) 
     output_shape = (input_shape[0]//4, input_shape[1]//4)
+    width_multiplier = 1.0
     depth_dim = 64
     bbox_3d_shape = (2000, 2000, 2000) # depth, height, width
     pixel_mean = (0.485, 0.456, 0.406)

@@ -79,6 +79,7 @@ class InvertedResidual(nn.Module):
 class MobGG_No_Concat(nn.Module):
     def __init__(self,
                  input_size,
+                 joint_num,
                  input_channel = 48,
                  embedding_size = 2048,
                  width_mult=1.0,
@@ -111,8 +112,8 @@ class MobGG_No_Concat(nn.Module):
             ]
 
         # building first layer
-        self.input_channel = _make_divisible(input_channel * width_mult, round_nearest)
-        self.first_conv = ConvBNReLU(3, self.input_channel, stride=1, norm_layer=norm_layer, activation_layer=activation_layer)
+        input_channel = _make_divisible(input_channel * width_mult, round_nearest)
+        self.first_conv = ConvBNReLU(3, input_channel, stride=1, norm_layer=norm_layer, activation_layer=activation_layer)
 
         inv_residual = []
         # building inverted residual blocks
@@ -128,13 +129,13 @@ class MobGG_No_Concat(nn.Module):
         self.last_conv = ConvBNReLU(input_channel, embedding_size, kernel_size=1, norm_layer=norm_layer, activation_layer=activation_layer)
         input_channel = embedding_size
 
-        self.deonv0 = DoubleConv(input_channel, inverted_residual_setting[-2][-3], 256, norm_layer=norm_layer, activation_layer=activation_layer)
-        self.deonv1 = DoubleConv(256, inverted_residual_setting[-3][-3], 256, norm_layer=norm_layer, activation_layer=activation_layer)
-        self.deonv2 = DoubleConv(256, inverted_residual_setting[-4][-3], 256, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.deonv0 = DoubleConv(input_channel, _make_divisible(inverted_residual_setting[-2][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.deonv1 = DoubleConv(256, _make_divisible(inverted_residual_setting[-3][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.deonv2 = DoubleConv(256, _make_divisible(inverted_residual_setting[-4][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
 
         self.final_layer = nn.Conv2d(
             in_channels=256,
-            out_channels=18 * 64,
+            out_channels= joint_num * 64,
             kernel_size=1,
             stride=1,
             padding=0
