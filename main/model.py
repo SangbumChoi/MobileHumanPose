@@ -111,7 +111,7 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
         print("=" * 60)
         print("{} Backbone Generated".format(backbone_str))
         print("=" * 60)
-        model = CustomNet(BACKBONE_DICT[backbone_str](INPUT_SIZE, joint_num, embedding_size=EMBEDDING_SIZE, width_mult=WIDTH_MULTIPLIER))
+        model = CustomNet(BACKBONE_DICT[backbone_str](input_size = INPUT_SIZE, joint_num = joint_num, embedding_size = EMBEDDING_SIZE, width_mult = WIDTH_MULTIPLIER))
         return model
     else:
         backbone = BACKBONE_DICT[backbone_str](INPUT_SIZE, EMBEDDING_SIZE)
@@ -119,10 +119,10 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
         print("{} Backbone Generated".format(backbone_str))
         print("=" * 60)
 
-    head = HEAD_DICT[head_str](in_features = EMBEDDING_SIZE, joint_num = joint_num)
-    print("=" * 60)
-    print("{} Head Generated".format(head_str))
-    print("=" * 60)
+        head = HEAD_DICT[head_str](in_features = EMBEDDING_SIZE, joint_num = joint_num)
+        print("=" * 60)
+        print("{} Head Generated".format(head_str))
+        print("=" * 60)
     if is_train:
         if cfg.pre_train:
             if cfg.pre_train_name is not None:
