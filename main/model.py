@@ -80,9 +80,10 @@ class ResPoseNet(nn.Module):
             return loss_coord
 
 class CustomNet(nn.Module):
-    def __init__(self, backbone):
+    def __init__(self, backbone, joint_num):
         super(CustomNet, self).__init__()
         self.backbone = backbone
+        self.joint_num = joint_num
 
     def forward(self, input_img, target=None):
         fm = self.backbone(input_img)
@@ -111,7 +112,7 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
         print("=" * 60)
         print("{} Backbone Generated".format(backbone_str))
         print("=" * 60)
-        model = CustomNet(BACKBONE_DICT[backbone_str](input_size = INPUT_SIZE, joint_num = joint_num, embedding_size = EMBEDDING_SIZE, width_mult = WIDTH_MULTIPLIER))
+        model = CustomNet(BACKBONE_DICT[backbone_str](input_size = INPUT_SIZE, joint_num = joint_num, embedding_size = EMBEDDING_SIZE, width_mult = WIDTH_MULTIPLIER), joint_num)
         return model
     else:
         backbone = BACKBONE_DICT[backbone_str](INPUT_SIZE, EMBEDDING_SIZE)
@@ -141,5 +142,5 @@ def get_pose_net(backbone_str, head_str, is_train, joint_num):
             print("=" * 60)
         head.init_weights()
 
-    model = CustomNet(backbone, head, joint_num)
+    model = ResPoseNet(backbone, head, joint_num)
     return model
