@@ -44,7 +44,7 @@ class Config:
     end_epoch = 25
     lr = 1e-3
     lr_dec_factor = 10
-    batch_size = 64
+    batch_size = 36
     pre_train = False
     pre_train_name = 'mobilenetv2_lsp.pth.tar'
     teacher_train = False
