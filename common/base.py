@@ -204,7 +204,3 @@ class Transformer(Base):
             single_pytorch_model = model.module
             single_pytorch_model.eval()
             self.model = single_pytorch_model
-        else:
-            single_pytorch_model = model.module
-            single_pytorch_model.eval()
-            self.model = single_pytorch_model

@@ -34,9 +34,6 @@ def main():
     cfg.set_args(args.gpu_ids, args.continue_train)
     cudnn.fastest = True
     cudnn.benchmark = True
-    
-    # create once at the beginning of training
-    scaler = torch.cuda.amp.GradScaler()
 
     trainer = Trainer(args.backbone, args.frontbone)
     trainer._make_batch_generator()
@@ -65,20 +62,14 @@ def main():
                 teacher_coord = trainer.model(input_img, target)
                 loss_coord = ( teacher_coord + student_coord ) / 2
             else :
-                with torch.cuda.amp.autocast():
-                    loss_coord = trainer.model(input_img, target)
-                    loss_coord = loss_coord.mean()
+                loss_coord = trainer.model(input_img, target)
+            loss_coord = loss_coord.mean()
 
             # backward
             loss = loss_coord
-
-            # loss.backward()
-            scaler.scale(loss).backward()
-
-            # trainer.optimizer.step()
-            scaler.step(trainer.optimizer)
-            scaler.update()            
-
+            loss.backward()
+            trainer.optimizer.step()
+            
             trainer.gpu_timer.toc()
             screen = [
                 'Epoch %d/%d itr %d/%d:' % (epoch, cfg.end_epoch, itr, trainer.itr_per_epoch),
