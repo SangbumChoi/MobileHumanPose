@@ -38,19 +38,11 @@ class Config:
 
     ## training config
     embedding_size = 2048
-    warming_up = False
-    lr_inc_epoch = 5
     lr_dec_epoch = [17, 21]
     end_epoch = 25
     lr = 1e-3
     lr_dec_factor = 10
     batch_size = 64
-    pre_train = False
-    pre_train_name = 'mobilenetv2_lsp.pth.tar'
-    teacher_train = False
-    teacher_backbone = 'ResNet50'
-    teacher_frontbone = 'PartNet'
-    teacher_train_name = 'exp18_snapshot_22.pth.tar'
 
     ## testing config
     test_batch_size = 32

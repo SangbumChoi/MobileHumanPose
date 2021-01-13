@@ -18,7 +18,6 @@ def parse_args():
     parser.add_argument('--joint', type=int, dest='joint')
     parser.add_argument('--modelpath', type=str, dest='modelpath')
     parser.add_argument('--backbone', type=str, dest='backbone')
-    parser.add_argument('--frontbone', type=str, dest='frontbone')
     args = parser.parse_args()
 
     # test gpus
@@ -37,7 +36,8 @@ args = parse_args()
 
 dummy_input = torch.randn(1, 3, 256, 256, device='cuda')
 
-transformer = Transformer(args.backbone, args.frontbone, args.joint, args.modelpath)
+# modelpath as definite path
+transformer = Transformer(args.backbone, args.joint, args.modelpath)
 transformer._make_model()
 
 single_pytorch_model = transformer.model

@@ -22,7 +22,6 @@ def parse_args():
     parser.add_argument('--input_image', type=str, dest='image')
     parser.add_argument('--jointnum', type=int, dest='joint')
     parser.add_argument('--backbone', type=str, dest='backbone')
-    parser.add_argument('--frontbone', type=str, dest='frontbone')
     args = parser.parse_args()
 
     # test gpus
@@ -53,13 +52,6 @@ if joint_num == 18:
 if joint_num == 21:
     skeleton = ( (0, 16), (16, 1), (1, 15), (15, 14), (14, 8), (14, 11), (8, 9), (9, 10), (10, 19), (11, 12), (12, 13), (13, 20), (1, 2), (2, 3), (3, 4), (4, 17), (1, 5), (5, 6), (6, 7), (7, 18) )
 
-# extractor
-activation = {}
-def get_activation(name):
-    def hook(model, input, output):
-        activation[name] = output.detach()
-    return hook
-
 # snapshot load
 model_path = os.path.join(cfg.model_dir, 'snapshot_%d.pth.tar' % args.test_epoch)
 assert osp.exists(model_path), 'Cannot find model at ' + model_path
@@ -79,14 +71,22 @@ original_img_height, original_img_width = original_img.shape[:2]
 
 # prepare bbox
 bbox_list = [
-[139.41, 102.25, 222.39, 241.57],\
-[287.17, 61.52, 74.88, 165.61],\
-[540.04, 48.81, 99.96, 223.36],\
-[372.58, 170.84, 266.63, 217.19],\
-[0.5, 43.74, 90.1, 220.09]] # xmin, ymin, width, height
+    [139.41, 102.25, 222.39, 241.57],\
+    [287.17, 61.52, 74.88, 165.61],\
+    [540.04, 48.81, 99.96, 223.36],\
+    [372.58, 170.84, 266.63, 217.19],\
+    [0.5, 43.74, 90.1, 220.09]
+] # xmin, ymin, width, height
 root_depth_list = [11250.5732421875, 15522.8701171875, 11831.3828125, 8852.556640625, 12572.5966796875] # obtain this from RootNet (https://github.com/mks0601/3DMPPE_ROOTNET_RELEASE/tree/master/demo)
 assert len(bbox_list) == len(root_depth_list)
 person_num = len(bbox_list)
+
+# extractor
+activation = {}
+def get_activation(name):
+    def hook(model, input, output):
+        activation[name] = output.detach()
+    return hook
 
 for n in range(person_num):
     bbox = process_bbox(np.array(bbox_list[n]), original_img_width, original_img_height)
@@ -103,13 +103,13 @@ a = activation['0'] - activation['1']
 b = torch.sum(a, dim=1)
 print(b)
 for i in range(person_num):
-   image = activation['%d'%i]
-   print(image.size())
-   sum_image = torch.sum(image[0], dim=0)
-   print(sum_image.size())
-   plt.subplot(1, person_num, i+1)
-   plt.imshow(sum_image.cpu(), cmap='gray')
-   plt.axis('off')
+    image = activation['%d'%i]
+    print(image.size())
+    sum_image = torch.sum(image[0], dim=0)
+    print(sum_image.size())
+    plt.subplot(1, person_num, i+1)
+    plt.imshow(sum_image.cpu(), cmap='gray')
+    plt.axis('off')
 
 plt.show()
 plt.close()

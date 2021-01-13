@@ -62,10 +62,9 @@ class Base(object):
 
 class Trainer(Base):
     
-    def __init__(self, backbone, frontbone):
+    def __init__(self, backbone):
         super(Trainer, self).__init__(log_name = 'train_logs.txt')
         self.backbone = backbone
-        self.frontbone = frontbone
 
     def get_optimizer(self, model):
         
@@ -75,10 +74,6 @@ class Trainer(Base):
     def set_lr(self, epoch):
         for e in cfg.lr_dec_epoch:
             if epoch < e:
-                if cfg.warming_up == True:
-                    if epoch < cfg.lr_inc_epoch - 1:
-                        for g in self.optimizer.param_groups:
-                            g['lr'] = cfg.lr * (epoch + 1) / cfg.lr_inc_epoch
                 break
         if epoch < cfg.lr_dec_epoch[-1]:
             idx = cfg.lr_dec_epoch.index(e)
@@ -93,6 +88,7 @@ class Trainer(Base):
             cur_lr = g['lr']
 
         return cur_lr
+
     def _make_batch_generator(self):
         # data load and construct batch generator
         self.logger.info("Creating dataset...")
@@ -126,7 +122,7 @@ class Trainer(Base):
     def _make_model(self):
         # prepare network
         self.logger.info("Creating graph and optimizer...")
-        model = get_pose_net(self.backbone, self.frontbone, True, self.joint_num)
+        model = get_pose_net(self.backbone, True, self.joint_num)
         model = DataParallel(model).cuda()
         optimizer = self.get_optimizer(model)
         if cfg.continue_train:
@@ -141,9 +137,8 @@ class Trainer(Base):
 
 class Tester(Base):
     
-    def __init__(self, backbone, frontbone):
+    def __init__(self, backbone):
         self.backbone = backbone
-        self.frontbone = frontbone
         super(Tester, self).__init__(log_name = 'test_logs.txt')
 
     def _make_batch_generator(self):
@@ -170,7 +165,7 @@ class Tester(Base):
         
         # prepare network
         # self.logger.info("Creating graph...")
-        model = get_pose_net(self.backbone, self.frontbone, False, self.joint_num)
+        model = get_pose_net(self.backbone, False, self.joint_num)
         model = DataParallel(model).cuda()
         ckpt = torch.load(model_path)
         model.load_state_dict(ckpt['network'])
@@ -182,25 +177,20 @@ class Tester(Base):
         eval_summary = self.testset.evaluate(preds, result_save_path)
         self.logger.info('{}'.format(eval_summary))
 
-
 class Transformer(Base):
 
-    def __init__(self, backbone, frontbone, jointnum, modelpath):
+    def __init__(self, backbone, jointnum, modelpath):
         super(Transformer, self).__init__(log_name='transformer_logs.txt')
         self.backbone = backbone
-        self.frontbone = frontbone
         self.jointnum = jointnum
         self.modelpath = modelpath
 
     def _make_model(self):
         # prepare network
         self.logger.info("Creating graph and optimizer...")
-        model = get_pose_net(self.backbone, self.frontbone, False, self.jointnum)
+        model = get_pose_net(self.backbone, False, self.jointnum)
         model = DataParallel(model).cuda()
         model.load_state_dict(torch.load(self.modelpath)['network'])
-        if cfg.teacher_train == True:
-            self.model = model
-        elif cfg.pre_train == True:
-            single_pytorch_model = model.module
-            single_pytorch_model.eval()
-            self.model = single_pytorch_model
+        single_pytorch_model = model.module
+        single_pytorch_model.eval()
+        self.model = single_pytorch_model

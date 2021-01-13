@@ -19,10 +19,10 @@ def _make_divisible(v, divisor, min_value=None):
         new_v += divisor
     return new_v
 
-class DoubleConv(nn.Sequential):
+class DeConv(nn.Sequential):
     def __init__(self, in_ch, mid_ch, out_ch, norm_layer=None, activation_layer=None):
-        super(DoubleConv, self).__init__(
-            nn.Conv2d(in_ch + mid_ch, mid_ch, kernel_size=1),
+        super(DeConv, self).__init__(
+            nn.Conv2d(in_ch, mid_ch, kernel_size=1),
             norm_layer(mid_ch),
             activation_layer(mid_ch),
             nn.Conv2d(mid_ch, out_ch, kernel_size=3, padding=1),
@@ -36,14 +36,6 @@ class ConvBNReLU(nn.Sequential):
         padding = (kernel_size - 1) // 2
         super(ConvBNReLU, self).__init__(
             nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, groups=groups, bias=False),
-            norm_layer(out_planes),
-            activation_layer(out_planes)
-        )
-
-class DeConvBNReLU(nn.Sequential):
-    def __init__(self, in_planes, out_planes, kernel_size=4, stride=2, padding=1, output_padding=0, bias=False, norm_layer=None, activation_layer=None):
-        super(DeConvBNReLU, self).__init__(
-            nn.ConvTranspose2d(in_planes, out_planes, kernel_size, stride, padding, groups=out_planes, output_padding=output_padding, bias=bias),
             norm_layer(out_planes),
             activation_layer(out_planes)
         )
@@ -76,7 +68,7 @@ class InvertedResidual(nn.Module):
         else:
             return self.conv(x)
 
-class MobGG(nn.Module):
+class LpNetWoConcat(nn.Module):
     def __init__(self,
                  input_size,
                  joint_num,
@@ -89,7 +81,7 @@ class MobGG(nn.Module):
                  activation_layer=None,
                  inverted_residual_setting=None):
 
-        super(MobGG, self).__init__()
+        super(LpNetWoConcat, self).__init__()
 
         assert input_size[1] in [256]
 
@@ -127,11 +119,10 @@ class MobGG(nn.Module):
         self.inv_residual = nn.Sequential(*inv_residual)
 
         self.last_conv = ConvBNReLU(input_channel, embedding_size, kernel_size=1, norm_layer=norm_layer, activation_layer=activation_layer)
-        input_channel = embedding_size
 
-        self.deonv0 = DoubleConv(input_channel, _make_divisible(inverted_residual_setting[-2][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
-        self.deonv1 = DoubleConv(256, _make_divisible(inverted_residual_setting[-3][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
-        self.deonv2 = DoubleConv(256, _make_divisible(inverted_residual_setting[-4][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.deconv0 = DeConv(embedding_size, _make_divisible(inverted_residual_setting[-2][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.deconv1 = DeConv(256, _make_divisible(inverted_residual_setting[-3][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.deconv2 = DeConv(256, _make_divisible(inverted_residual_setting[-4][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
 
         self.final_layer = nn.Conv2d(
             in_channels=256,
@@ -143,30 +134,16 @@ class MobGG(nn.Module):
 
     def forward(self, x):
         x = self.first_conv(x)
-        x = self.inv_residual[0:1](x)
-        x = self.inv_residual[1:3](x)
-        x = self.inv_residual[3:6](x)
-        x = self.inv_residual[6:10](x)
-        x2 = x
-        x = self.inv_residual[10:13](x)
-        x1 = x
-        x = self.inv_residual[13:16](x)
-        x0 = x
-        x = self.inv_residual[16:17](x)
-        z = self.last_conv(x)
-        z = torch.cat([x0, z], dim=1)
-        z = self.deonv0(z)
-        z = torch.cat([x1, z], dim=1)
-        z = self.deonv1(z)
-        z = torch.cat([x2, z], dim=1)
-        z = self.deonv2(z)
-        z = self.final_layer(z)
-        return z
+        x = self.inv_residual(x)
+        x = self.last_conv(x)
+        x = self.deconv0(x)
+        x = self.deconv1(x)
+        x = self.deconv2(x)
+        x = self.final_layer(x)
+        return x
 
 if __name__ == "__main__":
-    model = MobGG((256, 256), 18)
-    # print(model)
+    model = LpNetWoConcat((256, 256), 18)
     test_data = torch.rand(1, 3, 256, 256)
     test_outputs = model(test_data)
-    # print(test_outputs.size())
     summary(model, (3, 256, 256))

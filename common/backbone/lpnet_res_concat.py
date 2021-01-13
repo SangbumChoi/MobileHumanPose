@@ -68,7 +68,7 @@ class InvertedResidual(nn.Module):
         else:
             return self.conv(x)
 
-class MobGG_Res_Concat(nn.Module):
+class LpNetResConcat(nn.Module):
     def __init__(self,
                  input_size,
                  joint_num,
@@ -81,7 +81,7 @@ class MobGG_Res_Concat(nn.Module):
                  activation_layer=None,
                  inverted_residual_setting=None):
 
-        super(MobGG_Res_Concat, self).__init__()
+        super(LpNetResConcat, self).__init__()
 
         assert input_size[1] in [256]
 
@@ -151,21 +151,20 @@ class MobGG_Res_Concat(nn.Module):
         x0 = self.first_conv(x)
         x1 = self.inv_residual[0:1](x0)
         x2 = self.inv_residual[1:3](torch.cat([x0, x1], dim=1))
-        x3 = self.inv_residual[3:6](torch.cat([self.avgpool(x1), x2], dim=1))
-        x4 = self.inv_residual[6:10](torch.cat([self.avgpool(x2), x3], dim=1))
-        x5 = self.inv_residual[10:13](torch.cat([self.avgpool(x3), x4], dim=1))
-        x6 = self.inv_residual[13:16](torch.cat([self.avgpool(x4), x5], dim=1))
-        x7 = self.inv_residual[16:17](torch.cat([self.avgpool(x5), x6], dim=1))
-        x8 = self.last_conv(torch.cat([x6, x7], dim=1))
-        x9 = self.deonv0(torch.cat([x7, x8], dim=1))
-        x10 = self.deonv1(torch.cat([self.upsample(x8), x9], dim=1))
-        x11 = self.deonv2(torch.cat([self.upsample(x9), x10], dim=1))
-        x = self.final_layer(x11)
-        return x
+        x0 = self.inv_residual[3:6](torch.cat([self.avgpool(x1), x2], dim=1))
+        x1 = self.inv_residual[6:10](torch.cat([self.avgpool(x2), x0], dim=1))
+        x2 = self.inv_residual[10:13](torch.cat([self.avgpool(x0), x1], dim=1))
+        x0 = self.inv_residual[13:16](torch.cat([self.avgpool(x1), x2], dim=1))
+        x1 = self.inv_residual[16:17](torch.cat([self.avgpool(x2), x0], dim=1))
+        x2 = self.last_conv(torch.cat([x0, x1], dim=1))
+        x0 = self.deonv0(torch.cat([x1, x2], dim=1))
+        x1 = self.deonv1(torch.cat([self.upsample(x2), x0], dim=1))
+        x2 = self.deonv2(torch.cat([self.upsample(x0), x1], dim=1))
+        x0 = self.final_layer(x2)
+        return x0
 
 if __name__ == "__main__":
-    model = MobGG_Res_Concat((256, 256), 18)
-    # print(model)
+    model = LpNetResConcat((256, 256), 18)
     test_data = torch.rand(1, 3, 256, 256)
     test_outputs = model(test_data)
     # print(test_outputs.size())

@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from backbone import *
-from head import *
 from config import cfg
 import os.path as osp
 
@@ -20,18 +19,10 @@ model_urls = {
 }
 
 BACKBONE_DICT = {
-    'GhostNet': GhostNet, 'MobileNetV3': MobileNetV3,
-    'MobileNeXt': MobileNeXt, 'MobileNetV2': MobileNetV2,
-    'MNasNet':MNasNet,
-    'ResNet18':ResNet18,
-    'ResNet50':ResNet50,
-    'MGG':MobGG,
-    'MGG_NO_CONCAT':MobGG_No_Concat,
-    'MGG_RES_CONCAT':MobGG_Res_Concat
+    'LPRES':LpNetResConcat,
+    'LPSKI':LpNetSkiConcat,
+    'LPWO':LpNetWoConcat
     }
-
-HEAD_DICT = {'HeadNet': HeadNet, 'Custom1' : CustomNet1, 'Custom2' : CustomNet2, 'PartNet': PartNet, 'PartNet2' : PartNet2
-             }
 
 def soft_argmax(heatmaps, joint_num):
 
@@ -55,31 +46,6 @@ def soft_argmax(heatmaps, joint_num):
 
     return coord_out
 
-class ResPoseNet(nn.Module):
-    def __init__(self, backbone, head, joint_num):
-        super(CustomNet, self).__init__()
-        self.backbone = backbone
-        self.head = head
-        self.joint_num = joint_num
-
-    def forward(self, input_img, target=None):
-        fm = self.backbone(input_img)
-        hm = self.head(fm)
-        coord = soft_argmax(hm, self.joint_num)
-
-        if target is None:
-            return coord
-        else:
-            target_coord = target['coord']
-            target_vis = target['vis']
-            target_have_depth = target['have_depth']
-
-            ## coordinate loss
-            loss_coord = torch.abs(coord - target_coord) * target_vis
-            loss_coord = (loss_coord[:,:,0] + loss_coord[:,:,1] + loss_coord[:,:,2] * target_have_depth)/3.
-
-            return loss_coord
-
 class CustomNet(nn.Module):
     def __init__(self, backbone, joint_num):
         super(CustomNet, self).__init__()
@@ -100,48 +66,19 @@ class CustomNet(nn.Module):
             ## coordinate loss
             loss_coord = torch.abs(coord - target_coord) * target_vis
             loss_coord = (loss_coord[:,:,0] + loss_coord[:,:,1] + loss_coord[:,:,2] * target_have_depth)/3.
-
             return loss_coord
 
-def get_pose_net(backbone_str, head_str, is_train, joint_num):
+def get_pose_net(backbone_str, is_train, joint_num):
     INPUT_SIZE = cfg.input_shape
-    EMBEDDING_SIZE = cfg.embedding_size if not cfg.teacher_train else 2048 # feature dimension
+    EMBEDDING_SIZE = cfg.embedding_size # feature dimension
     WIDTH_MULTIPLIER = cfg.width_multiplier
+
     assert INPUT_SIZE == (256, 256)
 
-    if backbone_str == 'MGG' or 'MGG_NO_CONCAT':
-        print("=" * 60)
-        print("{} Backbone Generated".format(backbone_str))
-        print("=" * 60)
-        model = CustomNet(BACKBONE_DICT[backbone_str](input_size = INPUT_SIZE, joint_num = joint_num, embedding_size = EMBEDDING_SIZE, width_mult = WIDTH_MULTIPLIER), joint_num)
-        return model
-    else:
-        backbone = BACKBONE_DICT[backbone_str](INPUT_SIZE, EMBEDDING_SIZE)
-        print("=" * 60)
-        print("{} Backbone Generated".format(backbone_str))
-        print("=" * 60)
-
-        head = HEAD_DICT[head_str](in_features = EMBEDDING_SIZE, joint_num = joint_num)
-        print("=" * 60)
-        print("{} Head Generated".format(head_str))
-        print("=" * 60)
-    if is_train:
-        if cfg.pre_train:
-            if cfg.pre_train_name is not None:
-                file_path = osp.join(cfg.pretrain_dir, cfg.pre_train_name)
-                pretrained_dict = torch.load(file_path)
-                backbone.init_weights(model_urls[backbone_str], pretrained_dict)
-            else:
-                backbone.init_weights(model_urls[backbone_str], None)
-            print("=" * 60)
-            print("{} pretrain loaded".format(backbone_str))
-            print("=" * 60)
-        else:
-            backbone.init_weights(None)
-            print("=" * 60)
-            print("{} random initialized".format(backbone_str))
-            print("=" * 60)
-        head.init_weights()
-
-    model = ResPoseNet(backbone, head, joint_num)
+    print("=" * 60)
+    print("{} BackBone Generated".format(backbone_str))
+    print("=" * 60)
+    model = CustomNet(BACKBONE_DICT[backbone_str](input_size = INPUT_SIZE, joint_num = joint_num, embedding_size = EMBEDDING_SIZE, width_mult = WIDTH_MULTIPLIER), joint_num)
+    if is_train == True:
+        model.backbone.init_weight()
     return model

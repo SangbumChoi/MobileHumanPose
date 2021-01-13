@@ -12,9 +12,8 @@ import torch.backends.cudnn as cudnn
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, dest='gpu_ids')
-    parser.add_argument('--modelpath', type=str, dest='model')
+    parser.add_argument('--epochs', type=str, dest='model')
     parser.add_argument('--backbone', type=str, dest='backbone')
-    parser.add_argument('--frontbone', type=str, dest='frontbone')
     args = parser.parse_args()
 
     # test gpus
@@ -44,7 +43,7 @@ def main():
     cudnn.deterministic = False
     cudnn.enabled = True
 
-    tester = Tester(args.backbone, args.frontbone)
+    tester = Tester(args.backbone)
     tester._make_batch_generator()
 
     for epoch in range(args.model_epoch[0], args.model_epoch[1]):

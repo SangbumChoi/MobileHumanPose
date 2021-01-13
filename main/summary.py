@@ -17,7 +17,6 @@ def parse_args():
     parser.add_argument('--epoch', type=int, dest='test_epoch')
     parser.add_argument('--jointnum', type=int, dest='joint')
     parser.add_argument('--backbone', type=str, dest='backbone')
-    parser.add_argument('--frontbone', type=str, dest='frontbone')
     args = parser.parse_args()
 
     # test gpus
