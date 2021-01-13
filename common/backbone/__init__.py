@@ -7,3 +7,4 @@ from backbone.resnet18 import *
 from backbone.resnet50 import *
 from backbone.mgg import *
 from backbone.mgg_wo_concat import *
+from backbone.mgg_res_concat import *

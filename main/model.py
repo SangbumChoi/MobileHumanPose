@@ -26,7 +26,8 @@ BACKBONE_DICT = {
     'ResNet18':ResNet18,
     'ResNet50':ResNet50,
     'MGG':MobGG,
-    'MGG_NO_CONCAT':MobGG_No_Concat
+    'MGG_NO_CONCAT':MobGG_No_Concat,
+    'MGG_RES_CONCAT':MobGG_Res_Concat
     }
 
 HEAD_DICT = {'HeadNet': HeadNet, 'Custom1' : CustomNet1, 'Custom2' : CustomNet2, 'PartNet': PartNet, 'PartNet2' : PartNet2
