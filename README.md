@@ -4,7 +4,7 @@
 
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/camera-distance-aware-top-down-approach-for/3d-multi-person-pose-estimation-root-relative)](https://paperswithcode.com/sota/3d-multi-person-pose-estimation-root-relative?p=camera-distance-aware-top-down-approach-for)
 
-# PoseNet of "Camera Distance-aware Top-down Approach for 3D Multi-person Pose Estimation from a Single RGB Image"
+# PoseNet of "Rethinking design of 3D human pose estimation network structure for mobile devices"
 
 <p align="center">
 <img src="assets/qualitative_intro.PNG" width="800" height="300">

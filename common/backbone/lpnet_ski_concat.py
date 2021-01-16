@@ -135,16 +135,14 @@ class LpNetSkiConcat(nn.Module):
 
     def forward(self, x):
         x = self.first_conv(x)
-        x = self.inv_residual[0:1](x)
-        x = self.inv_residual[1:3](x)
-        x = self.inv_residual[3:6](x)
+        x = self.inv_residual[0:6](x)
         x = self.inv_residual[6:10](x)
         x2 = x
         x = self.inv_residual[10:13](x)
         x1 = x
         x = self.inv_residual[13:16](x)
         x0 = x
-        x = self.inv_residual[16:17](x)
+        x = self.inv_residual[16:](x)
         z = self.last_conv(x)
         z = torch.cat([x0, z], dim=1)
         z = self.deconv0(z)
