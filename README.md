@@ -7,14 +7,7 @@
 
 ## Introduction
 
-This repo is official **[PyTorch](https://pytorch.org)** implementation of **[MobileHumanPose: Toward real-time 3D human pose estimation in mobile devices(CVPRW 2021)](https://arxiv.org/abs/1907.11346)**. It contains **PoseNet** part.
-
-**What this repo cames from:**
-Training section and is based on following paper and github
-* [PyTorch](https://pytorch.org) implementation of [Camera Distance-aware Top-down Approach for 3D Multi-person Pose Estimation from a Single RGB Image (ICCV 2019)](https://arxiv.org/abs/1907.11346).
-* Flexible and simple code.
-* Compatibility for most of the publicly available 2D and 3D, single and multi-person pose estimation datasets including **[Human3.6M](http://vision.imar.ro/human3.6m/description.php), [MPII](http://human-pose.mpi-inf.mpg.de/), [MS COCO 2017](http://cocodataset.org/#home), [MuCo-3DHP](http://gvv.mpi-inf.mpg.de/projects/SingleShotMultiPerson/) and [MuPoTS-3D](http://gvv.mpi-inf.mpg.de/projects/SingleShotMultiPerson/)**.
-* Human pose estimation visualization code.
+This repo is official **[PyTorch](https://pytorch.org)** implementation of **[MobileHumanPose: Toward real-time 3D human pose estimation in mobile devices(CVPRW 2021)]()**.
 
 ## Dependencies
 * [PyTorch](https://pytorch.org)
@@ -162,6 +155,14 @@ For the evaluation, run `test.py`.  After that, move `data/MuPoTS/mpii_mupots_mu
 For the inference in mobile devices we also tested in mobile devices which converting PyTorch implementation through onnx and finally serving into TFlite
 
 ## Reference
+
+**What this repo cames from:**
+Training section and is based on following paper and github
+* [PyTorch](https://pytorch.org) implementation of [Camera Distance-aware Top-down Approach for 3D Multi-person Pose Estimation from a Single RGB Image (ICCV 2019)](https://arxiv.org/abs/1907.11346).
+* Flexible and simple code.
+* Compatibility for most of the publicly available 2D and 3D, single and multi-person pose estimation datasets including **[Human3.6M](http://vision.imar.ro/human3.6m/description.php), [MPII](http://human-pose.mpi-inf.mpg.de/), [MS COCO 2017](http://cocodataset.org/#home), [MuCo-3DHP](http://gvv.mpi-inf.mpg.de/projects/SingleShotMultiPerson/) and [MuPoTS-3D](http://gvv.mpi-inf.mpg.de/projects/SingleShotMultiPerson/)**.
+* Human pose estimation visualization code.
+
   ```
 @InProceedings{Moon_2019_ICCV_3DMPPE,
   author = {Moon, Gyeongsik and Chang, Juyong and Lee, Kyoung Mu},
