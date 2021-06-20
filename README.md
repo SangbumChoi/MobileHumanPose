@@ -152,7 +152,8 @@ For the evaluation, run `test.py`.  After that, move `data/MuPoTS/mpii_mupots_mu
 </p>
 
 #### TFLite inference
-For the inference in mobile devices we also tested in mobile devices which converting PyTorch implementation through onnx and finally serving into TFlite
+For the inference in mobile devices we also tested in mobile devices which converting PyTorch implementation through onnx and finally serving into TFlite.
+Official demo app is available in [here](https://github.com/tucan9389/PoseEstimation-TFLiteSwift)
 
 ## Reference
 
