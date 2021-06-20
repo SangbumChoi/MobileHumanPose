@@ -7,7 +7,7 @@
 
 ## Introduction
 
-This repo is official **[PyTorch](https://pytorch.org)** implementation of **[MobileHumanPose: Toward real-time 3D human pose estimation in mobile devices(CVPRW 2021)]()**.
+This repo is official **[PyTorch](https://pytorch.org)** implementation of **[MobileHumanPose: Toward real-time 3D human pose estimation in mobile devices(CVPRW 2021)](https://openaccess.thecvf.com/content/CVPR2021W/MAI/html/Choi_MobileHumanPose_Toward_Real-Time_3D_Human_Pose_Estimation_in_Mobile_Devices_CVPRW_2021_paper.html)**.
 
 ## Dependencies
 * [PyTorch](https://pytorch.org)
