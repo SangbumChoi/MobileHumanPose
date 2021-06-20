@@ -163,7 +163,7 @@ Training section and is based on following paper and github
 * Compatibility for most of the publicly available 2D and 3D, single and multi-person pose estimation datasets including **[Human3.6M](http://vision.imar.ro/human3.6m/description.php), [MPII](http://human-pose.mpi-inf.mpg.de/), [MS COCO 2017](http://cocodataset.org/#home), [MuCo-3DHP](http://gvv.mpi-inf.mpg.de/projects/SingleShotMultiPerson/) and [MuPoTS-3D](http://gvv.mpi-inf.mpg.de/projects/SingleShotMultiPerson/)**.
 * Human pose estimation visualization code.
 
-  ```
+```
 @InProceedings{Moon_2019_ICCV_3DMPPE,
   author = {Moon, Gyeongsik and Chang, Juyong and Lee, Kyoung Mu},
   title = {Camera Distance-aware Top-down Approach for 3D Multi-person Pose Estimation from a Single RGB Image},
@@ -171,5 +171,4 @@ Training section and is based on following paper and github
   year = {2019}
 }
 ```
-
 
