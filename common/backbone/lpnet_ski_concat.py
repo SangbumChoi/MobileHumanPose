@@ -94,19 +94,19 @@ class LpNetSkiConcat(nn.Module):
         if inverted_residual_setting is None:
             inverted_residual_setting = [
                 # t, c, n, s
-                [1, 64, 1, 1],  #[-1, 48, 256, 256]
+                [1, 64, 1, 2],  #[-1, 48, 256, 256]
                 [6, 48, 2, 2],  #[-1, 48, 128, 128]
                 [6, 48, 3, 2],  #[-1, 48, 64, 64]
                 [6, 64, 4, 2],  #[-1, 64, 32, 32]
                 [6, 96, 3, 2],  #[-1, 96, 16, 16]
-                [6, 160, 3, 2], #[-1, 160, 8, 8]
+                [6, 160, 3, 1], #[-1, 160, 8, 8]
                 [6, 320, 1, 1], #[-1, 320, 8, 8]
             ]
 
         # building first layer
         input_channel = _make_divisible(input_channel * width_mult, round_nearest)
 
-        self.first_conv = ConvBNReLU(3, input_channel, stride=1, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.first_conv = ConvBNReLU(3, input_channel, stride=2, norm_layer=norm_layer, activation_layer=activation_layer)
 
         inv_residual = []
         # building inverted residual blocks
@@ -121,13 +121,13 @@ class LpNetSkiConcat(nn.Module):
 
         self.last_conv = ConvBNReLU(input_channel, embedding_size, kernel_size=1, norm_layer=norm_layer, activation_layer=activation_layer)
 
-        self.deconv0 = DeConv(embedding_size, _make_divisible(inverted_residual_setting[-2][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
-        self.deconv1 = DeConv(256, _make_divisible(inverted_residual_setting[-3][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
-        self.deconv2 = DeConv(256, _make_divisible(inverted_residual_setting[-4][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.deconv0 = DeConv(embedding_size, _make_divisible(inverted_residual_setting[-3][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.deconv1 = DeConv(256, _make_divisible(inverted_residual_setting[-4][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.deconv2 = DeConv(256, _make_divisible(inverted_residual_setting[-5][-3] * width_mult, round_nearest), 256, norm_layer=norm_layer, activation_layer=activation_layer)
 
         self.final_layer = nn.Conv2d(
             in_channels=256,
-            out_channels= joint_num * 64,
+            out_channels= joint_num * 32,
             kernel_size=1,
             stride=1,
             padding=0
@@ -136,12 +136,12 @@ class LpNetSkiConcat(nn.Module):
     def forward(self, x):
         x = self.first_conv(x)
         x = self.inv_residual[0:6](x)
-        x = self.inv_residual[6:10](x)
         x2 = x
-        x = self.inv_residual[10:13](x)
+        x = self.inv_residual[6:10](x)
         x1 = x
-        x = self.inv_residual[13:16](x)
+        x = self.inv_residual[10:13](x)
         x0 = x
+        x = self.inv_residual[13:16](x)
         x = self.inv_residual[16:](x)
         z = self.last_conv(x)
         z = torch.cat([x0, z], dim=1)
@@ -154,8 +154,8 @@ class LpNetSkiConcat(nn.Module):
         return z
 
 if __name__ == "__main__":
-    model = LpNetSkiConcat((256, 256), 18)
-    test_data = torch.rand(1, 3, 256, 256)
+    model = LpNetSkiConcat((256, 256), 18).cuda()
+    test_data = torch.rand(1, 3, 256, 256).cuda()
     test_outputs = model(test_data)
-    # print(test_outputs.size())
+    print(test_outputs.size())
     summary(model, (3, 256, 256))

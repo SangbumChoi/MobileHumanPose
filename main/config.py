@@ -9,12 +9,12 @@ class Config:
     # training set
     # 3D: Human36M, MuCo
     # 2D: MSCOCO, MPII 
-    trainset_3d = ['Human36M']
-    trainset_2d = ['MPII']
+    trainset_3d = ['MuCo']
+    trainset_2d = ['MSCOCO']
 
     # testing set
     # Human36M, MuPoTS, MSCOCO
-    testset = 'Human36M'
+    testset = 'MuPoTS'
 
     ## directory
     cur_dir = osp.dirname(os.path.abspath(__file__))
@@ -29,9 +29,9 @@ class Config:
     
     ## input, output
     input_shape = (256, 256) 
-    output_shape = (input_shape[0]//4, input_shape[1]//4)
+    output_shape = (input_shape[0]//8, input_shape[1]//8)
     width_multiplier = 1.0
-    depth_dim = 64
+    depth_dim = 32
     bbox_3d_shape = (2000, 2000, 2000) # depth, height, width
     pixel_mean = (0.485, 0.456, 0.406)
     pixel_std = (0.229, 0.224, 0.225)

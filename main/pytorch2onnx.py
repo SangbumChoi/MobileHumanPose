@@ -2,13 +2,12 @@ import onnx
 import torch
 import argparse
 import numpy
+import imageio
 import onnxruntime as ort
 import tensorflow as tf
-import torch.nn.utils.prune as prune
 
 from config import cfg
 from torchsummary import summary
-from torch.nn.parallel.data_parallel import DataParallel
 from base import Transformer
 from onnx_tf.backend import prepare
 
@@ -55,7 +54,8 @@ torch.onnx.export(
     do_constant_folding=False,  # fold constant values for optimization
     # do_constant_folding=True,   # fold constant values for optimization
     input_names=['input'],
-    output_names=['output']
+    output_names=['output'],
+    opset_version=11
 )
 
 onnx_model = onnx.load(ONNX_PATH)
@@ -98,11 +98,34 @@ converter = tf.lite.TFLiteConverter.from_saved_model(TF_PATH)
 # go to this link https://www.tensorflow.org/lite/guide/get_started#4_optimize_your_model_optional
 # converter.optimizations = [tf.compat.v1.lite.Optimize.DEFAULT]
 
-converter.experimental_new_converter = True
+# converter.experimental_new_converter = True
+#
+# # I had to explicitly state the ops
+# converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS,
+#                                        tf.lite.OpsSet.SELECT_TF_OPS]
 
-# I had to explicitly state the ops
-converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS,
-                                       tf.lite.OpsSet.SELECT_TF_OPS]
+def representative_dataset():
+
+    dataset_size = 10
+
+    for i in range(dataset_size):
+        print(i)
+        data = imageio.imread("../sample_images/" + "00000" + str(i) + ".jpg")
+        data = numpy.resize(data, [1, 3, 256, 256])
+        yield [data.astype(numpy.float32)]
+
+
+converter.experimental_new_converter = True
+converter.experimental_new_quantizer = True
+
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+converter.representative_dataset = representative_dataset
+converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+converter.inference_input_type = tf.uint8
+converter.inference_output_type = tf.uint8
+
+# input_arrays = converter.get_input_arrays()
+# converter.quantized_input_stats = {input_arrays[0]: (0.0, 1.0)}
 
 tf_lite_model = converter.convert()
 # Save the model.
