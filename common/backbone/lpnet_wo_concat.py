@@ -142,6 +142,22 @@ class LpNetWoConcat(nn.Module):
         x = self.final_layer(x)
         return x
 
+    def init_weights(self):
+        for i in [self.deconv0, self.deconv1, self.deconv2]:
+            for name, m in i.named_modules():
+                if isinstance(m, nn.ConvTranspose2d):
+                    nn.init.normal_(m.weight, std=0.001)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+        for j in [self.first_conv, self.inv_residual, self.last_conv, self.final_layer]:
+            for m in j.modules():
+                if isinstance(m, nn.Conv2d):
+                    nn.init.normal_(m.weight, std=0.001)
+                    if hasattr(m, 'bias'):
+                        if m.bias is not None:
+                            nn.init.constant_(m.bias, 0)
+
 if __name__ == "__main__":
     model = LpNetWoConcat((256, 256), 18)
     test_data = torch.rand(1, 3, 256, 256)

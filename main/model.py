@@ -54,7 +54,6 @@ class CustomNet(nn.Module):
 
     def forward(self, input_img, target=None):
         fm = self.backbone(input_img)
-        return fm
         coord = soft_argmax(fm, self.joint_num)
 
         if target is None:
@@ -80,6 +79,6 @@ def get_pose_net(backbone_str, is_train, joint_num):
     print("{} BackBone Generated".format(backbone_str))
     print("=" * 60)
     model = CustomNet(BACKBONE_DICT[backbone_str](input_size = INPUT_SIZE, joint_num = joint_num, embedding_size = EMBEDDING_SIZE, width_mult = WIDTH_MULTIPLIER), joint_num)
-    # if is_train == True:
-    #     model.backbone.init_weight()
+    if is_train == True:
+        model.backbone.init_weights()
     return model
