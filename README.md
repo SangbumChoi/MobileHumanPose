@@ -109,13 +109,13 @@ ${POSE_ROOT}
 ### Train
 In the `main` folder, run
 ```bash
-python train.py --gpu 0-1 --backbone LPSKINET
+python train.py --gpu 0-1 --backbone LPSKI
 ```
 to train the network on the GPU 0,1. 
 
 If you want to continue experiment, run 
 ```bash
-python train.py --gpu 0-1 --backbone LPSKINET --continue
+python train.py --gpu 0-1 --backbone LPSKI --continue
 ```
 `--gpu 0,1` can be used instead of `--gpu 0-1`.
 
@@ -124,9 +124,9 @@ Place trained model at the `output/model_dump/`.
 
 In the `main` folder, run 
 ```bash
-python test.py --gpu 0-1 --test_epoch 20 --backbone LPSKINET
+python test.py --gpu 0-1 --test_epoch 20-21 --backbone LPSKI
 ```
-to test the network on the GPU 0,1 with 20th epoch trained model. `--gpu 0,1` can be used instead of `--gpu 0-1`. For the backbone you can either choose 
+to test the network on the GPU 0,1 with 20th and 21th epoch trained model. `--gpu 0,1` can be used instead of `--gpu 0-1`. For the backbone you can either choose 
 BACKBONE_DICT = {
     'LPRES':LpNetResConcat,
     'LPSKI':LpNetSkiConcat,
