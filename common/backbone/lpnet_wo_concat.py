@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 from torchsummary import summary
+from config import cfg
 
 def _make_divisible(v, divisor, min_value=None):
     """
@@ -126,7 +127,7 @@ class LpNetWoConcat(nn.Module):
 
         self.final_layer = nn.Conv2d(
             in_channels=256,
-            out_channels= joint_num * 64,
+            out_channels= joint_num * cfg.depth_dim,
             kernel_size=1,
             stride=1,
             padding=0

@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 from torchsummary import summary
+from config import cfg
 
 def _make_divisible(v, divisor, min_value=None):
     """
@@ -106,7 +107,7 @@ class LpNetSkiConcat(nn.Module):
         # building first layer
         input_channel = _make_divisible(input_channel * width_mult, round_nearest)
 
-        self.first_conv = ConvBNReLU(3, input_channel, stride=2, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.first_conv = ConvBNReLU(3, input_channel, stride=1, norm_layer=norm_layer, activation_layer=activation_layer)
 
         inv_residual = []
         # building inverted residual blocks
@@ -127,7 +128,7 @@ class LpNetSkiConcat(nn.Module):
 
         self.final_layer = nn.Conv2d(
             in_channels=256,
-            out_channels= joint_num * 32,
+            out_channels= joint_num * cfg.depth_dim,
             kernel_size=1,
             stride=1,
             padding=0

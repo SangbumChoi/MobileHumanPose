@@ -62,7 +62,7 @@ class CustomNet(nn.Module):
             target_coord = target['coord']
             target_vis = target['vis']
             target_have_depth = target['have_depth']
-
+            print(coord.size(), target_coord.size(), target_vis.size(), fm.size())
             ## coordinate loss
             loss_coord = torch.abs(coord - target_coord) * target_vis
             loss_coord = (loss_coord[:,:,0] + loss_coord[:,:,1] + loss_coord[:,:,2] * target_have_depth)/3.
