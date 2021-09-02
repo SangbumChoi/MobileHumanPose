@@ -103,7 +103,15 @@ ${POSE_ROOT}
 * Run `draw_3Dpose_$DB_NAME.m`
 
 ## Running 3DMPPE_POSENET
-### Start
+
+### Requirements
+
+```shell
+cd main
+pip install -r requirements.txt
+```
+
+### Setup Training
 * In the `main/config.py`, you can change settings of the model including dataset to use, network backbone, and input size and so on.
 
 ### Train
