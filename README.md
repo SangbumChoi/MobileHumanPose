@@ -1,9 +1,6 @@
 # Github Code of "MobileHumanPose: Toward real-time 3D human pose estimation in mobile devices"
 
-<p align="middle">
-<img src="assets/test.JPG">
-</p>
-
+#### [2021.11.23] There will be massive refactoring and optimization expected. It will be released as soon as possible including new model.pth (expecting end of December)
 
 ## Introduction
 
@@ -101,6 +98,10 @@ ${POSE_ROOT}
 * Run `$DB_NAME_img_name.py` to get image file names in `.txt` format.
 * Place your test result files (`preds_2d_kpt_$DB_NAME.mat`, `preds_3d_kpt_$DB_NAME.mat`) in `single` or `multi` folder.
 * Run `draw_3Dpose_$DB_NAME.m`
+
+<p align="middle">
+<img src="assets/test.JPG">
+</p>
 
 ## Running 3DMPPE_POSENET
 
