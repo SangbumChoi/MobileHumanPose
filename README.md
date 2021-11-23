@@ -174,11 +174,13 @@ Training section and is based on following paper and github
 * Human pose estimation visualization code.
 
 ```
-@InProceedings{Moon_2019_ICCV_3DMPPE,
-  author = {Moon, Gyeongsik and Chang, Juyong and Lee, Kyoung Mu},
-  title = {Camera Distance-aware Top-down Approach for 3D Multi-person Pose Estimation from a Single RGB Image},
-  booktitle = {The IEEE Conference on International Conference on Computer Vision (ICCV)},
-  year = {2019}
+@InProceedings{Choi_2021_CVPR,
+    author    = {Choi, Sangbum and Choi, Seokeon and Kim, Changick},
+    title     = {MobileHumanPose: Toward Real-Time 3D Human Pose Estimation in Mobile Devices},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Workshops},
+    month     = {June},
+    year      = {2021},
+    pages     = {2328-2338}
 }
 ```
 
