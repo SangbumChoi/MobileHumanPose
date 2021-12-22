@@ -1,6 +1,6 @@
 # Github Code of "MobileHumanPose: Toward real-time 3D human pose estimation in mobile devices"
 
-#### [2021.11.23] There will be massive refactoring and optimization expected. It will be released as soon as possible including new model.pth (expecting end of December)
+#### [2021.11.23] There will be massive refactoring and optimization expected. It will be released as soon as possible including new model.pth, Please wait for the model!(expecting end of December)
 
 ## Introduction
 
