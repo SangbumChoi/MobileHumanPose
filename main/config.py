@@ -55,12 +55,16 @@ class Config:
     num_gpus = 1
     continue_train = False
 
-    def set_args(self, gpu_ids, continue_train=False):
+    def set_args(self, gpu_ids, datasets3d=['MuCo'], datasets2d=['MSCOCO'], continue_train=False):
         self.gpu_ids = gpu_ids
         self.num_gpus = len(self.gpu_ids.split(','))
+        self.trainset_3d = datasets3d
+        self.trainset_2d = datasets2d
         self.continue_train = continue_train
         os.environ["CUDA_VISIBLE_DEVICES"] = self.gpu_ids
         print('>>> Using GPU: {}'.format(self.gpu_ids))
+        print('>>> Using Train dataset: {}, {}'.format(self.trainset_3d, self.trainset_2d))
+
 
 cfg = Config()
 

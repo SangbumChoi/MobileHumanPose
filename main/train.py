@@ -13,6 +13,8 @@ def parse_args():
     parser.add_argument('--gpu', type=str, dest='gpu_ids')
     parser.add_argument('--continue', dest='continue_train', action='store_true')
     parser.add_argument('--backbone', type=str, dest='backbone')
+    parser.add_argument('--datasets3d', nargs='+', help='<Required> Set flag', default=['MuCo'])
+    parser.add_argument('--datasets2d', nargs='+', help='<Required> Set flag', default=[''])
     args = parser.parse_args()
 
     if not args.gpu_ids:
@@ -30,7 +32,7 @@ def main():
     
     # argument parse and create log
     args = parse_args()
-    cfg.set_args(args.gpu_ids, args.continue_train)
+    cfg.set_args(args.gpu_ids, args.datasets3d, args.datasets3d, args.continue_train)
     cudnn.fastest = True
     cudnn.benchmark = True
 

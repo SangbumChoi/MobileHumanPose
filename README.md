@@ -17,6 +17,12 @@ This code is tested under Ubuntu 16.04, CUDA 11.2 environment with two NVIDIA RT
 
 Python 3.6.5 version with virtualenv is used for development.
 
+
+```shell
+cd main
+pip install -r requirements.txt
+```
+
 ## Directory
 
 ### Root
@@ -31,7 +37,10 @@ ${ROOT}
 |-- vis
 `-- output
 ```
-* `data` contains data loading codes and soft links to images and annotations directories.
+* `data` contains data loading codes and soft links to images and annotations directories. Example of symbolic link is down below.
+```buildoutcfg
+ln -s /home/ubuntu/datasets/sbchoi/Muco/data/ /home/ubuntu/projects/sbchoi/MobileHumanPose/data/MuCo/
+```
 * `demo` contains demo codes.
 * `common` contains kernel codes for 3d multi-person pose estimation system. Also custom backbone is implemented in this repo
 * `main` contains high-level codes for training or testing the network.
@@ -104,13 +113,6 @@ ${POSE_ROOT}
 </p>
 
 ## Running 3DMPPE_POSENET
-
-### Requirements
-
-```shell
-cd main
-pip install -r requirements.txt
-```
 
 ### Setup Training
 * In the `main/config.py`, you can change settings of the model including dataset to use, network backbone, and input size and so on.
