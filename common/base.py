@@ -62,9 +62,9 @@ class Base(object):
 
 class Trainer(Base):
     
-    def __init__(self, backbone):
+    def __init__(self, cfg):
         super(Trainer, self).__init__(log_name = 'train_logs.txt')
-        self.backbone = backbone
+        self.backbone = cfg.backbone
 
     def get_optimizer(self, model):
         
@@ -113,8 +113,11 @@ class Trainer(Base):
         self.joint_num = trainset3d_loader[0].joint_num
 
         trainset3d_loader = MultipleDatasets(trainset3d_loader, make_same_len=False)
-        trainset2d_loader = MultipleDatasets(trainset2d_loader, make_same_len=False)
-        trainset_loader = MultipleDatasets([trainset3d_loader, trainset2d_loader], make_same_len=True)
+        if trainset2d_loader != []:
+            trainset2d_loader = MultipleDatasets(trainset2d_loader, make_same_len=False)
+            trainset_loader = MultipleDatasets([trainset3d_loader, trainset2d_loader], make_same_len=True)
+        else:
+            trainset_loader = MultipleDatasets([trainset3d_loader, ], make_same_len=True)
 
         self.itr_per_epoch = math.ceil(len(trainset_loader) / cfg.num_gpus / cfg.batch_size)
         self.batch_generator = DataLoader(dataset=trainset_loader, batch_size=cfg.num_gpus*cfg.batch_size, shuffle=True, num_workers=cfg.num_thread, pin_memory=True)
@@ -123,7 +126,8 @@ class Trainer(Base):
         # prepare network
         self.logger.info("Creating graph and optimizer...")
         model = get_pose_net(self.backbone, True, self.joint_num)
-        model = DataParallel(model).cuda()
+        if torch.cuda.is_available():
+            model = DataParallel(model).cuda()
         optimizer = self.get_optimizer(model)
         if cfg.continue_train:
             start_epoch, model, optimizer = self.load_model(model, optimizer)

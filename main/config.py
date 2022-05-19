@@ -4,13 +4,18 @@ import sys
 import numpy as np
 
 class Config:
+
+    ## model architecture
+    backbone = 'LPSKI'
     
     ## dataset
     # training set
     # 3D: Human36M, MuCo
-    # 2D: MSCOCO, MPII 
-    trainset_3d = ['MuCo']
-    trainset_2d = ['MSCOCO']
+    # 2D: MSCOCO, MPII
+    trainset_3d = ['Dummy']
+    # trainset_3d = ['MuCo']
+    trainset_2d = []
+    # trainset_2d = ['MSCOCO']
 
     # testing set
     # Human36M, MuPoTS, MSCOCO
@@ -55,17 +60,19 @@ class Config:
     num_gpus = 1
     continue_train = False
 
-    def set_args(self, gpu_ids, continue_train=False):
-        self.gpu_ids = gpu_ids
-        self.num_gpus = len(self.gpu_ids.split(','))
-        self.continue_train = continue_train
-        os.environ["CUDA_VISIBLE_DEVICES"] = self.gpu_ids
-        print('>>> Using GPU: {}'.format(self.gpu_ids))
+    if '-' in gpu_ids:
+        gpus = gpu_ids.split('-')
+        gpus[0] = int(gpus[0])
+        gpus[1] = int(gpus[1]) + 1
+        gpu_ids = ','.join(map(lambda x: str(x), list(range(*gpus))))
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
 
 cfg = Config()
 
 sys.path.insert(0, osp.join(cfg.root_dir, 'common'))
 from utils.dir_utils import add_pypath, make_folder
+# adding path
 add_pypath(osp.join(cfg.data_dir))
 for i in range(len(cfg.trainset_3d)):
     add_pypath(osp.join(cfg.data_dir, cfg.trainset_3d[i]))

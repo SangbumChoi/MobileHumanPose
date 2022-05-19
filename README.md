@@ -1,6 +1,7 @@
 # Github Code of "MobileHumanPose: Toward real-time 3D human pose estimation in mobile devices"
 
 #### [2021.11.23] There will be massive refactoring and optimization expected. It will be released as soon as possible including new model.pth, Please wait for the model!(expecting end of December)
+#### [2022.05.19] Dummy dataloader is added. This will make reduce about to 100x faster that user to generate dummy pth.tar file of MobileHumanPose model for their PoC.
 
 ## Introduction
 
