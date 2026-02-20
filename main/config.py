@@ -1,86 +1,119 @@
+"""
+Config: single source of truth. Edit here, not via CLI.
+Backbone and dataset set in this file. Use torchrun for multi-GPU (see runs/train.sh).
+"""
 import os
 import os.path as osp
 import sys
-import numpy as np
 
-class Config:
+# -----------------------------------------------------------------------------
+# Model (edit here; --backbone deprecated)
+backbone = 'LPSKI'  # LPSKI | LPRES | LPWO
 
-    ## model architecture
-    backbone = 'LPSKI'
-    
-    ## dataset
-    # training set
-    # 3D: Human36M, MuCo
-    # 2D: MSCOCO, MPII
-    trainset_3d = ['Dummy']
-    # trainset_3d = ['MuCo']
-    trainset_2d = []
-    # trainset_2d = ['MSCOCO']
+# -----------------------------------------------------------------------------
+# Dataset
+trainset_3d = ['Dummy']  # Human36M | MuCo | Dummy
+trainset_2d = []        # MSCOCO | MPII
+testset = 'Dummy'       # Human36M | MuPoTS | MSCOCO | Dummy
 
-    # testing set
-    # Human36M, MuPoTS, MSCOCO
-    testset = 'MuPoTS'
+# -----------------------------------------------------------------------------
+# Paths
+cur_dir = osp.dirname(osp.abspath(__file__))
+root_dir = osp.join(cur_dir, '..')
+data_dir = osp.join(root_dir, 'data')
+output_dir = osp.join(root_dir, 'output')
+model_dir = osp.join(output_dir, 'model_dump')
+log_dir = osp.join(output_dir, 'log')
+result_dir = osp.join(output_dir, 'result')
+vis_dir = osp.join(output_dir, 'vis')
+pretrain_dir = osp.join(output_dir, 'pre_train')
 
-    ## directory
-    cur_dir = osp.dirname(os.path.abspath(__file__))
-    root_dir = osp.join(cur_dir, '..')
-    data_dir = osp.join(root_dir, 'data')
-    output_dir = osp.join(root_dir, 'output')
-    model_dir = osp.join(output_dir, 'model_dump')
-    pretrain_dir = osp.join(output_dir, 'pre_train')
-    vis_dir = osp.join(output_dir, 'vis')
-    log_dir = osp.join(output_dir, 'log')
-    result_dir = osp.join(output_dir, 'result')
-    
-    ## input, output
-    input_shape = (256, 256) 
-    output_shape = (input_shape[0]//8, input_shape[1]//8)
-    width_multiplier = 1.0
-    depth_dim = 32
-    bbox_3d_shape = (2000, 2000, 2000) # depth, height, width
-    pixel_mean = (0.485, 0.456, 0.406)
-    pixel_std = (0.229, 0.224, 0.225)
+# -----------------------------------------------------------------------------
+# Input/output
+input_shape = (256, 256)
+output_shape = (input_shape[0] // 8, input_shape[1] // 8)
+width_multiplier = 1.0
+depth_dim = 32
+bbox_3d_shape = (2000, 2000, 2000)
+pixel_mean = (0.485, 0.456, 0.406)
+pixel_std = (0.229, 0.224, 0.225)
 
-    ## training config
-    embedding_size = 2048
-    lr_dec_epoch = [17, 21]
-    end_epoch = 25
-    lr = 1e-3
-    lr_dec_factor = 10
-    batch_size = 64
+# -----------------------------------------------------------------------------
+# Training
+embedding_size = 2048
+lr_dec_epoch = [17, 21]
+end_epoch = 25
+lr = 1e-3
+lr_dec_factor = 10
+batch_size = 64
 
-    ## testing config
-    test_batch_size = 32
-    flip_test = True
-    use_gt_info = True
+# -----------------------------------------------------------------------------
+# Testing
+test_batch_size = 32
+flip_test = True
+use_gt_info = True
 
-    ## others
-    num_thread = 20
-    gpu_ids = '0'
+# -----------------------------------------------------------------------------
+# System (torchrun sets world_size; else single process)
+num_thread = min(8, os.cpu_count() or 8)
+continue_train = False
+
+# Resolve num_gpus: from torch.distributed if using torchrun, else 1
+def _get_num_gpus():
+    try:
+        import torch.distributed as dist
+        if dist.is_available() and dist.is_initialized():
+            return dist.get_world_size()
+    except Exception:
+        pass
+    return 1
+
+# Lazy init after torch
+num_gpus = 1  # updated in train/test
+
+# -----------------------------------------------------------------------------
+# Setup paths and imports
+for d in (model_dir, log_dir, result_dir, vis_dir):
+    os.makedirs(d, exist_ok=True)
+
+sys.path.insert(0, osp.join(root_dir, 'common'))
+from utils.dir_utils import add_pypath
+
+add_pypath(data_dir)
+for ds in trainset_3d + trainset_2d + [testset]:
+    add_pypath(osp.join(data_dir, ds))
+
+# Backward-compat cfg namespace
+class Cfg:
+    backbone = backbone
+    trainset_3d = trainset_3d
+    trainset_2d = trainset_2d
+    testset = testset
+    root_dir = root_dir
+    data_dir = data_dir
+    output_dir = output_dir
+    model_dir = model_dir
+    log_dir = log_dir
+    result_dir = result_dir
+    vis_dir = vis_dir
+    input_shape = input_shape
+    output_shape = output_shape
+    width_multiplier = width_multiplier
+    depth_dim = depth_dim
+    bbox_3d_shape = bbox_3d_shape
+    pixel_mean = pixel_mean
+    pixel_std = pixel_std
+    embedding_size = embedding_size
+    lr_dec_epoch = lr_dec_epoch
+    end_epoch = end_epoch
+    lr = lr
+    lr_dec_factor = lr_dec_factor
+    batch_size = batch_size
+    test_batch_size = test_batch_size
+    flip_test = flip_test
+    use_gt_info = use_gt_info
+    num_thread = num_thread
+    continue_train = continue_train
     num_gpus = 1
-    continue_train = False
 
-    if '-' in gpu_ids:
-        gpus = gpu_ids.split('-')
-        gpus[0] = int(gpus[0])
-        gpus[1] = int(gpus[1]) + 1
-        gpu_ids = ','.join(map(lambda x: str(x), list(range(*gpus))))
-
-    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
-
-cfg = Config()
-
-sys.path.insert(0, osp.join(cfg.root_dir, 'common'))
-from utils.dir_utils import add_pypath, make_folder
-# adding path
-add_pypath(osp.join(cfg.data_dir))
-for i in range(len(cfg.trainset_3d)):
-    add_pypath(osp.join(cfg.data_dir, cfg.trainset_3d[i]))
-for i in range(len(cfg.trainset_2d)):
-    add_pypath(osp.join(cfg.data_dir, cfg.trainset_2d[i]))
-add_pypath(osp.join(cfg.data_dir, cfg.testset))
-make_folder(cfg.model_dir)
-make_folder(cfg.vis_dir)
-make_folder(cfg.log_dir)
-make_folder(cfg.result_dir)
-
+cfg = Cfg()

@@ -1,16 +1,17 @@
-import os
-import os.path as osp
-import numpy as np
 import math
-from utils.pose_utils import process_bbox
-from pycocotools.coco import COCO
+import os.path as osp
+
+import numpy as np
 from config import cfg
+from pycocotools.coco import COCO
+from utils.pose_utils import process_bbox
+
 
 class MuCo:
     def __init__(self, data_split):
         self.data_split = data_split
-        self.img_dir = osp.join('/', 'home', 'centos', 'datasets', 'MuCo')
-        self.train_annot_path = osp.join('/', 'home', 'centos', 'datasets', 'MuCo', 'MuCo-3DHP.json')
+        self.img_dir = osp.join(cfg.root_dir, 'data', 'MuCo', 'data')
+        self.train_annot_path = osp.join(cfg.root_dir, 'data', 'MuCo', 'data', 'MuCo-3DHP.json')
         self.joint_num = 21
         self.joints_name = ('Head_top', 'Thorax', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Pelvis', 'Spine', 'Head', 'R_Hand', 'L_Hand', 'R_Toe', 'L_Toe')
         self.flip_pairs = ( (2, 5), (3, 6), (4, 7), (8, 11), (9, 12), (10, 13), (17, 18), (19, 20) )
@@ -58,11 +59,11 @@ class MuCo:
                         picked = False
                 if picked:
                     pid_list.append(i)
-            
+
             for pid in pid_list:
                 joint_cam = np.array(anns[pid]['keypoints_cam'])
                 root_cam = joint_cam[self.root_idx]
-                
+
                 joint_img = np.array(anns[pid]['keypoints_img'])
                 joint_img = np.concatenate([joint_img, joint_cam[:,2:]],1)
                 joint_img[:,2] = joint_img[:,2] - root_cam[2]

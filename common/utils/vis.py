@@ -1,10 +1,7 @@
-import os
 import cv2
-import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-from config import cfg
+import numpy as np
+
 
 def vis_keypoints(img, kps, kps_lines, kp_thresh=0.4, alpha=1):
 
@@ -71,7 +68,7 @@ def vis_3d_skeleton(kpt_3d, kpt_3d_vis, kps_lines, filename=None):
     ax.set_ylabel('Z Label')
     ax.set_zlabel('Y Label')
     ax.legend()
-    
+
     plt.show()
     cv2.waitKey(0)
 
@@ -111,7 +108,7 @@ def vis_3d_multiple_skeleton(kpt_3d, kpt_3d_vis, kps_lines, filename=None):
     ax.set_ylabel('Z Label')
     ax.set_zlabel('Y Label')
     ax.legend()
-    
+
     plt.show()
     cv2.waitKey(0)
 

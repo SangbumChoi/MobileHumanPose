@@ -1,45 +1,36 @@
-import sys
-import os
-import os.path as osp
 import argparse
-import numpy as np
+import os.path as osp
+import sys
+
 import cv2
+import numpy as np
 import torch
+import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 from torch.nn.parallel.data_parallel import DataParallel
-import torch.backends.cudnn as cudnn
 
 sys.path.insert(0, osp.join('..', 'main'))
 sys.path.insert(0, osp.join('..', 'data'))
 sys.path.insert(0, osp.join('..', 'common'))
 from config import cfg
-from model import get_pose_net
 from dataset import generate_patch_image
-from utils.pose_utils import process_bbox, pixel2cam
-from utils.vis import vis_keypoints, vis_3d_multiple_skeleton
+from model import get_pose_net
+from utils.pose_utils import pixel2cam, process_bbox
+from utils.vis import vis_3d_multiple_skeleton, vis_keypoints
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', type=str, dest='gpu_ids')
-    parser.add_argument('--model_path', type=str, dest='model')
-    parser.add_argument('--input_image', type=str, dest='image')
-    parser.add_argument('--backbone', type=str, dest='backbone')
-    args = parser.parse_args()
+    parser.add_argument('--model_path', '-m', required=True)
+    parser.add_argument('--input_image', '-i', required=True)
+    parser.add_argument('--gpu', type=str, help='Deprecated. Edit config or use CUDA_VISIBLE_DEVICES.')
+    parser.add_argument('--backbone', type=str, help='Deprecated. Edit main/config.py.')
+    return parser.parse_args()
 
-    # test gpus
-    if not args.gpu_ids:
-        assert 0, print("Please set proper gpu ids")
-
-    if '-' in args.gpu_ids:
-        gpus = args.gpu_ids.split('-')
-        gpus[0] = 0 if not gpus[0].isdigit() else int(gpus[0])
-        gpus[1] = len(mem_info()) if not gpus[1].isdigit() else int(gpus[1]) + 1
-        args.gpu_ids = ','.join(map(lambda x: str(x), list(range(*gpus))))
-    return args
-
-# argument parsing
 args = parse_args()
-cfg.set_args(args.gpu_ids)
+if args.backbone:
+    import warnings
+    warnings.warn('--backbone deprecated; edit main/config.py', DeprecationWarning)
 cudnn.benchmark = True
 
 # MuCo joint set
@@ -51,20 +42,17 @@ flip_pairs = ( (2, 5), (3, 6), (4, 7), (8, 11), (9, 12), (10, 13), (17, 18), (19
 skeleton = ( (0, 7), (7, 8), (8, 9), (9, 10), (8, 11), (11, 12), (12, 13), (8, 14), (14, 15), (15, 16), (0, 1), (1, 2), (2, 3), (0, 4), (4, 5), (5, 6) )
 
 # snapshot load
-model_path = args.model
-
-# print('Load checkpoint from {}'.format(model_path))
-model = get_pose_net(args.backbone, False, joint_num)
+model = get_pose_net(cfg.backbone, False, joint_num)
 model = DataParallel(model).cuda()
 # print("after DataParallel", model)
-ckpt = torch.load(model_path)
+ckpt = torch.load(args.model_path)
 # print("ckpt", ckpt['network'])
 model.load_state_dict(ckpt['network'])
 model.eval()
 
 # prepare input image
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=cfg.pixel_mean, std=cfg.pixel_std)])
-img_path = args.image
+img_path = args.input_image
 assert osp.exists(img_path), 'Cannot find image at ' + img_path
 original_img = cv2.imread(img_path)
 original_img_height, original_img_width = original_img.shape[:2]
@@ -91,7 +79,7 @@ output_pose_2d_list = []
 output_pose_3d_list = []
 for n in range(person_num):
     bbox = process_bbox(np.array(bbox_list[n]), original_img_width, original_img_height)
-    img, img2bb_trans = generate_patch_image(original_img, bbox, False, 1.0, 0.0, False) 
+    img, img2bb_trans = generate_patch_image(original_img, bbox, False, 1.0, 0.0, False)
     img = transform(img).cuda()[None,:,:,:]
 
     # forward
@@ -106,7 +94,7 @@ for n in range(person_num):
     img2bb_trans_001 = np.concatenate((img2bb_trans, np.array([0,0,1]).reshape(1,3)))
     pose_3d[:,:2] = np.dot(np.linalg.inv(img2bb_trans_001), pose_3d_xy1.transpose(1,0)).transpose(1,0)[:,:2]
     output_pose_2d_list.append(pose_3d[:,:2].copy())
-    
+
     # root-relative discretized depth -> absolute continuous depth
     pose_3d[:,2] = (pose_3d[:,2] / cfg.depth_dim * 2 - 1) * (cfg.bbox_3d_shape[0]/2) + root_depth_list[n]
     pose_3d = pixel2cam(pose_3d, focal, princpt)

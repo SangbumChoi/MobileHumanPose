@@ -117,31 +117,30 @@ pip install -r requirements.txt
 * In the `main/config.py`, you can change settings of the model including dataset to use, network backbone, and input size and so on.
 
 ### Train
-In the `main` folder, run
-```bash
-python train.py --gpu 0-1 --backbone LPSKI
-```
-to train the network on the GPU 0,1. 
 
-If you want to continue experiment, run 
+Edit `main/config.py` for backbone (LPSKI | LPRES | LPWO), dataset, etc.
+
 ```bash
-python train.py --gpu 0-1 --backbone LPSKI --continue
+cd main
+python train.py              # Single GPU
+python train.py --continue   # Resume from latest checkpoint
 ```
-`--gpu 0,1` can be used instead of `--gpu 0-1`.
+
+For multi-GPU (torchrun):
+
+```bash
+bash runs/train.sh           # Default 2 GPUs
+NPROC=8 bash runs/train.sh   # 8 GPUs
+NPROC=1 bash runs/train.sh   # Single GPU
+```
 
 ### Test
-Place trained model at the `output/model_dump/`.
 
-In the `main` folder, run 
 ```bash
-python test.py --gpu 0-1 --test_epoch 20-21 --backbone LPSKI
+cd main
+python test.py --test_epoch 0
+python test.py --epochs 20-21   # Test epochs 20 and 21
 ```
-to test the network on the GPU 0,1 with 20th and 21th epoch trained model. `--gpu 0,1` can be used instead of `--gpu 0-1`. For the backbone you can either choose 
-BACKBONE_DICT = {
-    'LPRES':LpNetResConcat,
-    'LPSKI':LpNetSkiConcat,
-    'LPWO':LpNetWoConcat
-    }
 
 #### Human3.6M dataset using protocol 1
 For the evaluation, you can run `test.py` or there are evaluation codes in `Human36M`.
@@ -164,6 +163,25 @@ For the evaluation, run `test.py`.  After that, move `data/MuPoTS/mpii_mupots_mu
 #### TFLite inference
 For the inference in mobile devices we also tested in mobile devices which converting PyTorch implementation through onnx and finally serving into TFlite.
 Official demo app is available in [here](https://github.com/tucan9389/PoseEstimation-TFLiteSwift)
+
+### CoreML and ONNX Conversion
+
+See [docs/COREML_ONNX_CONVERSION.md](docs/COREML_ONNX_CONVERSION.md) for PyTorch → ONNX and PyTorch → CoreML conversion instructions.
+
+### Video Inference
+
+```bash
+python demo/video_inference.py --input video.mp4 --model_path output/model_dump/snapshot_0.pth.tar
+```
+
+### Dummy Data (PoC)
+
+Generate minimal dummy datasets for all data folders without full downloads:
+
+```bash
+python scripts/generate_dummy_data.py
+python scripts/test_config_combinations.py  # verify config presets
+```
 
 ## Reference
 

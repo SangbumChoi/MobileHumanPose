@@ -1,42 +1,25 @@
-import onnx
-import torch
 import argparse
-import numpy
+
 import imageio
+import numpy
+import onnx
 import onnxruntime as ort
 import tensorflow as tf
-
-from config import cfg
-from torchsummary import summary
+import torch
 from base import Transformer
 from onnx_tf.backend import prepare
+from torchsummary import summary
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', type=str, dest='gpu_ids')
-    parser.add_argument('--joint', type=int, dest='joint')
-    parser.add_argument('--modelpath', type=str, dest='modelpath')
-    parser.add_argument('--backbone', type=str, dest='backbone')
-    args = parser.parse_args()
+parser = argparse.ArgumentParser()
+parser.add_argument('--joint', type=int, default=18)
+parser.add_argument('--modelpath', type=str, required=True)
+parser.add_argument('--gpu', '--backbone', help='Deprecated. Edit config.py')
+args = parser.parse_args()
 
-    # test gpus
-    if not args.gpu_ids:
-        assert 0, "Please set proper gpu ids"
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+dummy_input = torch.randn(1, 3, 256, 256, device=device)
 
-    if '-' in args.gpu_ids:
-        gpus = args.gpu_ids.split('-')
-        gpus[0] = int(gpus[0])
-        gpus[1] = int(gpus[1]) + 1
-        args.gpu_ids = ','.join(map(lambda x: str(x), list(range(*gpus))))
-
-    return args
-
-args = parse_args()
-
-dummy_input = torch.randn(1, 3, 256, 256, device='cuda')
-
-# modelpath as definite path
-transformer = Transformer(args.backbone, args.joint, args.modelpath)
+transformer = Transformer(args.joint, args.modelpath)
 transformer._make_model()
 
 single_pytorch_model = transformer.model

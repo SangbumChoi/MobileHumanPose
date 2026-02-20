@@ -1,11 +1,8 @@
-import os
-import os.path as osp
-import scipy.io as sio
-import numpy as np
-import cv2
-import random
 import json
-import math
+import os.path as osp
+
+import numpy as np
+import scipy.io as sio
 from tqdm import tqdm
 
 root_dir = './images' # define path here
@@ -27,7 +24,7 @@ def load_h36m_annot_file(annot_file):
     c = np.reshape(data['c'],(-1)) # principal points
     img_heights = np.reshape(data['img_height'],(-1))
     img_widths = np.reshape(data['img_width'],(-1))
-   
+
     return joint_world, R, T, f, c, img_widths, img_heights
 
 def _H36FolderName(subject_id, act_id, subact_id, camera_id):
@@ -54,7 +51,7 @@ def get_bbox(joint_img):
     ymax = np.max(joint_img[:,1])
     width = xmax - xmin - 1
     height = ymax - ymin - 1
-    
+
     bbox[0] = (xmin + xmax)/2. - width/2*1.2
     bbox[1] = (ymin + ymax)/2. - height/2*1.2
     bbox[2] = width*1.2
@@ -66,14 +63,14 @@ img_id = 0; annot_id = 0
 for subject in tqdm(subject_list):
     cam_param = {}
     joint_3d = {}
-    images = []; annotations = [];
+    images = []; annotations = []
     for aid in tqdm(action_idx):
         for said in tqdm(subaction_idx):
             for cid in tqdm(camera_idx):
                 folder = _H36FolderName(subject,aid,said,cid)
                 if folder == 's_11_act_02_subact_02_ca_01':
                     continue
-               
+
                 joint_world, R, t, f, c, img_widths, img_heights = load_h36m_annot_file(osp.join(root_dir, folder, 'h36m_meta.mat'))
 
                 if str(aid) not in joint_3d:
@@ -95,7 +92,7 @@ for subject in tqdm(subject_list):
                     img_dict['cam_idx'] = cid
                     img_dict['frame_idx'] = n
                     images.append(img_dict)
-                    
+
                     if str(cid) not in cam_param:
                         cam_param[str(cid)] = {'R': R.tolist(), 't': t.tolist(), 'f': f.tolist(), 'c': c.tolist()}
                     if str(n) not in joint_3d[str(aid)][str(said)]:
@@ -113,17 +110,17 @@ for subject in tqdm(subject_list):
                     joint_img[:,0], joint_img[:,1] = cam2pixel(joint_cam, f, c)
                     joint_vis = (joint_img[:,0] >= 0) * (joint_img[:,0] < img_widths[n]) * (joint_img[:,1] >= 0) * (joint_img[:,1] < img_heights[n])
                     annot_dict['keypoints_vis'] = joint_vis.tolist()
-                    
+
                     bbox = get_bbox(joint_img)
                     annot_dict['bbox'] = bbox.tolist() # xmin, ymin, width, height
                     annotations.append(annot_dict)
 
                     img_id += 1
                     annot_id += 1
-    
+
     data = {'images': images, 'annotations': annotations}
     with open(osp.join(save_dir, 'Human36M_subject' + str(subject) + '_data.json'), 'w') as f:
-        json.dump(data, f)    
+        json.dump(data, f)
     with open(osp.join(save_dir, 'Human36M_subject' + str(subject) + '_camera.json'), 'w') as f:
         json.dump(cam_param, f)
     with open(osp.join(save_dir, 'Human36M_subject' + str(subject) + '_joint_3d.json'), 'w') as f:

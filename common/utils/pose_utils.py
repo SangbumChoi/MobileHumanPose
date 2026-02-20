@@ -1,7 +1,7 @@
-import torch
 import numpy as np
+import torch
 from config import cfg
-import copy
+
 
 def cam2pixel(cam_coord, f, c):
     x = cam_coord[:, 0] / (cam_coord[:, 2] + 1e-8) * f[0] + c[0]
@@ -47,7 +47,7 @@ def get_bbox(joint_img):
     ymax = np.max(joint_img[:,1])
     width = xmax - xmin - 1
     height = ymax - ymin - 1
-    
+
     bbox[0] = (xmin + xmax)/2. - width/2*1.2
     bbox[1] = (ymin + ymax)/2. - height/2*1.2
     bbox[2] = width*1.2

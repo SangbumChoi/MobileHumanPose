@@ -1,0 +1,19 @@
+[tool.ruff]
+line-length = 120
+target-version = "py37"
+exclude = ["tool/", "vis/", "output/", "scripts/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = [
+    "E501",   # line too long
+    "F403",   # star import
+    "F401",   # unused import
+    "F405",   # star import may be undefined
+    "F841",   # unused variable
+    "E741",   # ambiguous variable name `l`
+    "E702",   # multiple statements (semicolon)
+    "E701",   # multiple statements (colon)
+    "E402",   # module import not at top
+    "E712",   # comparison to True
+]
