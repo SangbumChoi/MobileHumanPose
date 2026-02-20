@@ -47,9 +47,9 @@ ${ROOT}
 ├── docs/             # CoreML/ONNX conversion guide
 ├── src/              # config.py, train.py, test.py, model
 ├── runs/             # train.sh (torchrun)
-├── scripts/          # generate_dummy_data.py, test_config_combinations.py
+├── scripts/          # generate_dummy_data, test_config_combinations, export_*_img_names
 ├── tool/             # Data preprocessing (optional)
-├── vis/              # 3D visualization (MATLAB)
+├── vis/              # Legacy MATLAB 2D/3D; Python vis in common.utils.vis
 └── output/           # log, model_dump, result, vis
 ```
 
