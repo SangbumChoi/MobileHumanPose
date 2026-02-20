@@ -2,12 +2,11 @@
 Dataset registry. Avoid exec(); use explicit mapping.
 """
 import os.path as osp
-import sys
 
 
 def _add_data_paths():
-    from config import cfg
-    from utils.dir_utils import add_pypath
+    from common.utils.dir_utils import add_pypath
+    from src.config import cfg
     for ds in cfg.trainset_3d + cfg.trainset_2d + [cfg.testset]:
         add_pypath(osp.join(cfg.data_dir, ds))
 

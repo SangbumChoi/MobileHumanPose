@@ -16,7 +16,7 @@ pip install onnx onnxruntime coremltools
 
 ```bash
 cd main
-python pytorch2onnx.py --joint 18 --modelpath ../output/model_dump/snapshot_0.pth.tar
+python -m src.pytorch2onnx --joint 18 --modelpath output/model_dump/snapshot_0.pth.tar
 ```
 
 - `--joint`: 18 (Dummy/H36M) or 21 (MuCo)
@@ -47,12 +47,12 @@ print(out[0].shape)  # (1, 18, 3) or (1, 21, 3)
 
 ```bash
 cd main
-python pytorch2coreml.py --joint 18 --modelpath ../output/model_dump/snapshot_0.pth.tar
+python -m src.pytorch2coreml --joint 18 --modelpath output/model_dump/snapshot_0.pth.tar
 ```
 
 ### 2. CoreML 출력
 
-- 기본 경로: `main/test.mlmodel` (스크립트 실행 디렉토리)
+- 기본 경로: `src/test.mlmodel` (스크립트 실행 디렉토리)
 - 입력: `input_1`, ImageType (1, 3, 256, 256)
 
 ### 3. iOS Swift 예시

@@ -4,12 +4,13 @@ import os.path as osp
 
 import torch
 import torch.backends.cudnn as cudnn
-from config import cfg
-from model import get_pose_net
 from ptflops import get_model_complexity_info
 from thop import clever_format, profile
 from torch.nn.parallel.data_parallel import DataParallel
 from torchsummary import summary
+
+from src.config import cfg
+from src.model import get_pose_net
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', type=int, default=0)

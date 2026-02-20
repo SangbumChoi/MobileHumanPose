@@ -7,9 +7,10 @@ import argparse
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
-from base import Tester
-from config import cfg
-from utils.pose_utils import flip
+
+from common.base import Tester
+from common.utils.pose_utils import flip
+from src.config import cfg
 
 
 def main():

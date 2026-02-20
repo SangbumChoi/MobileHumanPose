@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MobileHumanPose – WebGPU 3D</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #1a1a1a; color: #eee; }
+    .container { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px; align-items: flex-start; }
+    .panel { border: 1px solid #333; border-radius: 8px; overflow: hidden; background: #222; }
+    .panel h3 { margin: 0; padding: 8px 12px; font-size: 14px; border-bottom: 1px solid #333; }
+    #videoWrap { position: relative; }
+    #video { display: block; width: 640px; max-width: 100%; }
+    #canvas2d { position: absolute; left: 0; top: 0; width: 640px; max-width: 100%; pointer-events: none; }
+    #canvas3d { width: 400px; height: 400px; display: block; }
+    .controls { padding: 12px; }
+    button { padding: 8px 16px; margin-right: 8px; margin-bottom: 8px; cursor: pointer; background: #444; color: #fff; border: none; border-radius: 6px; }
+    button:hover { background: #555; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { font-size: 12px; color: #888; padding: 8px 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="panel">
+      <h3>Webcam + 2D skeleton</h3>
+      <div id="videoWrap">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas2d"></canvas>
+      </div>
+      <div class="controls">
+        <button id="startBtn">Start camera</button>
+        <button id="stopBtn" disabled>Stop</button>
+      </div>
+      <div class="status" id="status">Load models and start camera.</div>
+    </div>
+    <div class="panel">
+      <h3>3D skeleton (Three.js)</h3>
+      <canvas id="canvas3d"></canvas>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort.min.js" crossorigin></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

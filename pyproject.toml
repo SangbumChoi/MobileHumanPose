@@ -1,3 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mobilehumanpose"
+version = "0.1.0"
+description = "MobileHumanPose"
+requires-python = ">=3.7"
+dependencies = [
+    "numpy",
+    "tqdm",
+    "torch",
+    "torchvision",
+    "torchsummary",
+    "opencv-python",
+    "matplotlib",
+    "pycocotools",
+    "scipy",
+    "gradio>=4.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "common*", "data*", "demo*"]
+
 [tool.ruff]
 line-length = 120
 target-version = "py37"

@@ -1,5 +1,5 @@
 """
-Base Trainer/Tester. Minimal, hackable. Use config.py for backbone, dataset.
+Base Trainer/Tester. Minimal, hackable. Use src.config for backbone, dataset.
 """
 import glob
 import os
@@ -7,20 +7,21 @@ import os.path as osp
 
 import torch
 import torchvision.transforms as transforms
-from config import cfg
-from dataset import DatasetLoader
-from logger import colorlogger
-from model import get_pose_net
-from multiple_datasets import MultipleDatasets
-from timer import Timer
 from torch.nn.parallel import DataParallel
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 
+from common.logger import colorlogger
+from common.timer import Timer
+from data.dataset import DatasetLoader
+from data.multiple_datasets import MultipleDatasets
+from src.config import cfg
+from src.model import get_pose_net
+
 
 # Dataset registry
 def get_ds(name, split):
-    from utils.dir_utils import add_pypath
+    from common.utils.dir_utils import add_pypath
     add_pypath(osp.join(cfg.data_dir, name))
     mod = __import__(name, fromlist=[name])
     return getattr(mod, name)(split)

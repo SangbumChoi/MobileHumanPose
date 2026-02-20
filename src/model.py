@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
-from backbone import *
-from config import cfg
 from torch.nn import functional as F
+
+from common.backbone import *
+from src.config import cfg
 
 model_urls = {
     'MobileNetV2': 'https://download.pytorch.org/models/mobilenet_v2-b0353104.pth',

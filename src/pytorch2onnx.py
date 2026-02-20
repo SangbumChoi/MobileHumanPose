@@ -6,9 +6,10 @@ import onnx
 import onnxruntime as ort
 import tensorflow as tf
 import torch
-from base import Transformer
 from onnx_tf.backend import prepare
 from torchsummary import summary
+
+from common.base import Transformer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--joint', type=int, default=18)

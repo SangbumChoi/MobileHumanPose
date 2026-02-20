@@ -6,7 +6,6 @@ Usage: python demo/video_inference.py --input video.mp4 [--output out.mp4] [--gp
 import argparse
 import os
 import os.path as osp
-import sys
 
 import cv2
 import numpy as np
@@ -14,15 +13,11 @@ import torch
 import torchvision.transforms as transforms
 from torch.nn.parallel import DataParallel
 
-sys.path.insert(0, osp.join(osp.dirname(__file__), '..', 'main'))
-sys.path.insert(0, osp.join(osp.dirname(__file__), '..', 'data'))
-sys.path.insert(0, osp.join(osp.dirname(__file__), '..', 'common'))
-
-from config import cfg
-from dataset import generate_patch_image
-from model import get_pose_net
-from utils.pose_utils import process_bbox
-from utils.vis import vis_keypoints
+from common.utils.pose_utils import process_bbox
+from common.utils.vis import vis_keypoints
+from data.dataset import generate_patch_image
+from src.config import cfg
+from src.model import get_pose_net
 
 
 def parse_args():

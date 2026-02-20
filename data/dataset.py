@@ -4,10 +4,11 @@ import random
 
 import cv2
 import numpy as np
-from config import cfg
 from torch.utils.data.dataset import Dataset
-from utils.pose_utils import transform_joint_to_other_db
-from utils.vis import vis_3d_skeleton, vis_keypoints
+
+from common.utils.pose_utils import transform_joint_to_other_db
+from common.utils.vis import vis_3d_skeleton, vis_keypoints
+from src.config import cfg
 
 
 class DatasetLoader(Dataset):

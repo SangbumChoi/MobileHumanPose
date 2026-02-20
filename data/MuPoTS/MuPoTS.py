@@ -5,10 +5,11 @@ import random
 import cv2
 import numpy as np
 import scipy.io as sio
-from config import cfg
 from pycocotools.coco import COCO
-from utils.pose_utils import pixel2cam, process_bbox
-from utils.vis import vis_keypoints
+
+from common.utils.pose_utils import pixel2cam, process_bbox
+from common.utils.vis import vis_keypoints
+from src.config import cfg
 
 
 class MuPoTS:

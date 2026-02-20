@@ -2,7 +2,8 @@ import argparse
 
 import coremltools as ct
 import torch
-from base import Transformer
+
+from common.base import Transformer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--joint', type=int, default=18)

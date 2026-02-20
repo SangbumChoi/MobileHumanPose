@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test dataset combinations in main/config.py.
+Test dataset combinations in src/config.py.
 Usage: python scripts/test_config_combinations.py
 """
 import sys
@@ -8,9 +8,6 @@ import os.path as osp
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / 'main'))
-sys.path.insert(0, str(ROOT / 'common'))
-sys.path.insert(0, str(ROOT / 'data'))
 
 COMBOS = [
     {'trainset_3d': ['Dummy'], 'trainset_2d': [], 'testset': 'Dummy'},
@@ -22,10 +19,8 @@ COMBOS = [
 
 
 def main():
-    import config
-    from utils.dir_utils import add_pypath
-
-    cfg = config.cfg
+    from src.config import cfg
+    from common.utils.dir_utils import add_pypath
     failed = []
 
     for combo in COMBOS:

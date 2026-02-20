@@ -4,7 +4,6 @@ Backbone and dataset set in this file. Use torchrun for multi-GPU (see runs/trai
 """
 import os
 import os.path as osp
-import sys
 
 # -----------------------------------------------------------------------------
 # Model (edit here; --backbone deprecated)
@@ -76,8 +75,7 @@ num_gpus = 1  # updated in train/test
 for d in (model_dir, log_dir, result_dir, vis_dir):
     os.makedirs(d, exist_ok=True)
 
-sys.path.insert(0, osp.join(root_dir, 'common'))
-from utils.dir_utils import add_pypath
+from common.utils.dir_utils import add_pypath
 
 add_pypath(data_dir)
 for ds in trainset_3d + trainset_2d + [testset]:

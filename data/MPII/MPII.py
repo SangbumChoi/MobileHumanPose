@@ -1,9 +1,10 @@
 import os.path as osp
 
 import numpy as np
-from config import cfg
 from pycocotools.coco import COCO
-from utils.pose_utils import process_bbox
+
+from common.utils.pose_utils import process_bbox
+from src.config import cfg
 
 
 class MPII:

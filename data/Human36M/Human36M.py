@@ -4,10 +4,11 @@ import random
 
 import cv2
 import numpy as np
-from config import cfg
 from pycocotools.coco import COCO
-from utils.pose_utils import cam2pixel, pixel2cam, process_bbox, rigid_align, world2cam
-from utils.vis import vis_keypoints
+
+from common.utils.pose_utils import cam2pixel, pixel2cam, process_bbox, rigid_align, world2cam
+from common.utils.vis import vis_keypoints
+from src.config import cfg
 
 
 class Human36M:

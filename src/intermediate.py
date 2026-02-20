@@ -8,11 +8,12 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
-from config import cfg
-from dataset import generate_patch_image
-from model import get_pose_net
 from torch.nn.parallel.data_parallel import DataParallel
-from utils.pose_utils import process_bbox
+
+from common.utils.pose_utils import process_bbox
+from data.dataset import generate_patch_image
+from src.config import cfg
+from src.model import get_pose_net
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epoch', type=int, default=0)

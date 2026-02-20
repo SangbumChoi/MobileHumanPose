@@ -8,8 +8,9 @@ import os
 
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
-from base import Trainer, save_ckpt
-from config import cfg
+
+from common.base import Trainer, save_ckpt
+from src.config import cfg
 
 
 def setup_dist():

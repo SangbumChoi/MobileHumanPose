@@ -7,6 +7,9 @@ output
 # demo output
 demo/*.pth.tar
 
+# assets output (keep folder, ignore generated videos)
+assets/videos/*.mp4
+
 # byte-compiled
 /__pycache_/
 */__pycache/*

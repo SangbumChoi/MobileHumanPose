@@ -1,6 +1,5 @@
 import argparse
 import os.path as osp
-import sys
 
 import cv2
 import numpy as np
@@ -9,28 +8,38 @@ import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 from torch.nn.parallel.data_parallel import DataParallel
 
-sys.path.insert(0, osp.join('..', 'main'))
-sys.path.insert(0, osp.join('..', 'data'))
-sys.path.insert(0, osp.join('..', 'common'))
-from config import cfg
-from dataset import generate_patch_image
-from model import get_pose_net
-from utils.pose_utils import pixel2cam, process_bbox
-from utils.vis import vis_3d_multiple_skeleton, vis_keypoints
+from common.utils.pose_utils import pixel2cam, process_bbox
+from common.utils.vis import vis_3d_multiple_skeleton, vis_keypoints
+from data.dataset import generate_patch_image
+from src.config import cfg
+from src.model import get_pose_net
+
+try:
+    from .detection import get_person_bboxes
+    from .rootnet import get_root_depths
+except ImportError:
+    from detection import get_person_bboxes
+    from rootnet import get_root_depths
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', '-m', required=True)
     parser.add_argument('--input_image', '-i', required=True)
-    parser.add_argument('--gpu', type=str, help='Deprecated. Edit config or use CUDA_VISIBLE_DEVICES.')
-    parser.add_argument('--backbone', type=str, help='Deprecated. Edit main/config.py.')
+    parser.add_argument('--detection', choices=['ultralytics', 'hf', 'onnx'], default='ultralytics',
+                        help='Human detection backend for bbox')
+    parser.add_argument('--onnx_path', default='', help='For detection=onnx')
+    parser.add_argument('--conf', type=float, default=0.5)
+    parser.add_argument('--bbox', nargs=4, type=float, metavar=('X', 'Y', 'W', 'H'),
+                        help='Optional single bbox (x,y,w,h) instead of detection')
+    parser.add_argument('--gpu', type=str, help='Deprecated.')
+    parser.add_argument('--backbone', type=str, help='Deprecated. Edit src/config.py.')
     return parser.parse_args()
 
 args = parse_args()
 if args.backbone:
     import warnings
-    warnings.warn('--backbone deprecated; edit main/config.py', DeprecationWarning)
+    warnings.warn('--backbone deprecated; edit src/config.py', DeprecationWarning)
 cudnn.benchmark = True
 
 # MuCo joint set
@@ -56,23 +65,28 @@ img_path = args.input_image
 assert osp.exists(img_path), 'Cannot find image at ' + img_path
 original_img = cv2.imread(img_path)
 original_img_height, original_img_width = original_img.shape[:2]
+focal = [1500, 1500]
+princpt = [original_img_width / 2, original_img_height / 2]
 
-# prepare bbox
-bbox_list = [
-[139.41, 102.25, 222.39, 241.57],\
-[287.17, 61.52, 74.88, 165.61],\
-[540.04, 48.81, 99.96, 223.36],\
-[372.58, 170.84, 266.63, 217.19],\
-[0.5, 43.74, 90.1, 220.09]] # xmin, ymin, width, height
-root_depth_list = [11250.5732421875, 15522.8701171875, 11831.3828125, 8852.556640625, 12572.5966796875] # obtain this from RootNet (https://github.com/mks0601/3DMPPE_ROOTNET_RELEASE/tree/master/demo)
-assert len(bbox_list) == len(root_depth_list)
+# prepare bbox (detection) and root_depth (RootNet)
+if args.bbox is not None:
+    bbox_list = [list(args.bbox)]
+else:
+    bbox_list = get_person_bboxes(
+        original_img,
+        backend=args.detection,
+        conf_thres=args.conf,
+        onnx_path=args.onnx_path or osp.join(osp.dirname(__file__), 'models', 'person_detector.onnx'),
+    )
+if not bbox_list:
+    bbox_list = [[0, 0, original_img_width, original_img_height]]
+
+root_depth_list = get_root_depths(
+    original_img, bbox_list, focal, princpt,
+    process_bbox, generate_patch_image,
+)
 person_num = len(bbox_list)
-
-# normalized camera intrinsics
-focal = [1500, 1500] # x-axis, y-axis
-princpt = [original_img_width/2, original_img_height/2] # x-axis, y-axis
-print('focal length: (' + str(focal[0]) + ', ' + str(focal[1]) + ')')
-print('principal points: (' + str(princpt[0]) + ', ' + str(princpt[1]) + ')')
+print(f'Focal: {focal}, princpt: {princpt}, persons: {person_num}')
 
 # for each cropped and resized human image, forward it to PoseNet
 output_pose_2d_list = []
