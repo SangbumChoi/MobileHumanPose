@@ -7,38 +7,62 @@
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, sans-serif; background: #1a1a1a; color: #eee; }
-    .container { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px; align-items: flex-start; }
-    .panel { border: 1px solid #333; border-radius: 8px; overflow: hidden; background: #222; }
+    .container { display: flex; gap: 12px; padding: 12px; align-items: flex-start; min-height: 100vh; }
+    .panel { border: 1px solid #333; border-radius: 8px; overflow: hidden; background: #222; flex: 1; min-width: 0; }
     .panel h3 { margin: 0; padding: 8px 12px; font-size: 14px; border-bottom: 1px solid #333; }
-    #videoWrap { position: relative; }
-    #video { display: block; width: 640px; max-width: 100%; }
-    #canvas2d { position: absolute; left: 0; top: 0; width: 640px; max-width: 100%; pointer-events: none; }
-    #canvas3d { width: 400px; height: 400px; display: block; }
+    /* 왼쪽: 입력 스트림 */
+    .panel-input #video { display: block; width: 100%; max-width: 640px; }
+    /* 오른쪽: 결과 (2D + 3D) */
+    .panel-output .output-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px; }
+    .panel-output #canvas2d { display: block; max-width: 100%; width: 640px; }
+    .panel-output #canvas3d { display: block; width: 400px; height: 400px; }
     .controls { padding: 12px; }
     button { padding: 8px 16px; margin-right: 8px; margin-bottom: 8px; cursor: pointer; background: #444; color: #fff; border: none; border-radius: 6px; }
     button:hover { background: #555; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
     .status { font-size: 12px; color: #888; padding: 8px 12px; }
+    .debug-panel { margin-top: 12px; border-top: 1px solid #333; }
+    .debug-panel.hidden { display: none; }
+    .debug-panel pre { margin: 0; padding: 8px 12px; font-size: 11px; color: #aaa; background: #111; border-radius: 6px; overflow: auto; max-height: 240px; white-space: pre-wrap; word-break: break-all; }
+    .debug-panel h4 { margin: 8px 0 4px; font-size: 12px; color: #888; }
+    .load-error { display: none; padding: 12px 16px; margin: 12px; background: #4a1515; color: #ff8888; border: 1px solid #a44; border-radius: 8px; font-family: monospace; font-size: 14px; }
+    .load-error.visible { display: block; }
   </style>
 </head>
 <body>
+  <div id="loadError" class="load-error"></div>
   <div class="container">
-    <div class="panel">
-      <h3>Webcam + 2D skeleton</h3>
-      <div id="videoWrap">
-        <video id="video" autoplay playsinline muted></video>
-        <canvas id="canvas2d"></canvas>
-      </div>
+    <!-- 왼쪽 패널: 입력 스트림 -->
+    <div class="panel panel-input">
+      <h3>Input stream</h3>
+      <video id="video" autoplay playsinline muted></video>
       <div class="controls">
         <button id="startBtn">Start camera</button>
         <button id="stopBtn" disabled>Stop</button>
+        <button id="debugBtn">Debug</button>
       </div>
       <div class="status" id="status">Load models and start camera.</div>
     </div>
-    <div class="panel">
-      <h3>3D skeleton (Three.js)</h3>
-      <canvas id="canvas3d"></canvas>
+    <!-- 오른쪽 패널: 결과 (2D 스켈레톤 + 3D) -->
+    <div class="panel panel-output">
+      <h3>Output</h3>
+      <div class="output-row">
+        <div>
+          <div style="font-size:12px;color:#888;margin-bottom:4px;">2D skeleton</div>
+          <canvas id="canvas2d"></canvas>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#888;margin-bottom:4px;">3D skeleton</div>
+          <canvas id="canvas3d"></canvas>
+        </div>
+      </div>
     </div>
+  </div>
+  <div id="debugPanel" class="debug-panel hidden">
+    <h4>Detection (person_detector)</h4>
+    <pre id="debugDetection">—</pre>
+    <h4>Pose (pose.onnx)</h4>
+    <pre id="debugPose">—</pre>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort.min.js" crossorigin></script>

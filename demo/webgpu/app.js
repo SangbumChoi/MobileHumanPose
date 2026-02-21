@@ -24,6 +24,11 @@ let ctx2d = canvas2d.getContext('2d');
 let startBtn = document.getElementById('startBtn');
 let stopBtn = document.getElementById('stopBtn');
 let statusEl = document.getElementById('status');
+let debugBtn = document.getElementById('debugBtn');
+let debugPanel = document.getElementById('debugPanel');
+let debugDetectionEl = document.getElementById('debugDetection');
+let debugPoseEl = document.getElementById('debugPose');
+let loadErrorEl = document.getElementById('loadError');
 
 let poseSession = null;
 let detSession = null;
@@ -34,9 +39,44 @@ let skeletonLines = [];
 let skeletonPoints = [];
 let animationId = null;
 let stream = null;
+let offscreenCanvas = null;
+let offscreenCtx = null;
+let debugMode = false;
+let lastDebug = { detection: null, pose: [] };
 
 function setStatus(msg) {
   statusEl.textContent = msg;
+}
+
+function updateDebugPanel() {
+  if (!debugDetectionEl || !debugPoseEl) return;
+  if (lastDebug.detection) {
+    const d = lastDebug.detection;
+    debugDetectionEl.textContent = [
+      `output: ${d.outputName}`,
+      `dims: [${(d.dims && d.dims.length) ? d.dims.join(', ') : '—'}]`,
+      `size: ${d.size}`,
+      `sample (first ${d.sample.length}): [${d.sample.map((x) => x.toFixed(4)).join(', ')}]`,
+      `bboxes (${d.bboxes.length}):`,
+      ...d.bboxes.map((b, i) => `  [${i}] x=${b[0].toFixed(0)} y=${b[1].toFixed(0)} w=${b[2].toFixed(0)} h=${b[3].toFixed(0)}`),
+    ].join('\n');
+  } else {
+    debugDetectionEl.textContent = '— (no detection this frame)';
+  }
+  if (lastDebug.pose && lastDebug.pose.length > 0) {
+    const lines = [];
+    lastDebug.pose.forEach((p, i) => {
+      if (!p) return;
+      lines.push(`[Person ${i}] output: ${p.outputName}`);
+      lines.push(`  rawCoord (${p.rawCoord.length}): [${p.rawCoord.slice(0, 18).map((x) => x.toFixed(3)).join(', ')}${p.rawCoord.length > 18 ? ', ...' : ''}]`);
+      lines.push(`  pose2d (18 joints): ${JSON.stringify(p.pose2d.map((j) => [j[0].toFixed(0), j[1].toFixed(0)]))}`);
+      const p3 = p.pose3d.slice(0, 3).map((j) => j.map((v) => Number(v.toFixed(0))));
+      lines.push(`  pose3d (18 joints): ${JSON.stringify(p3)}${p.pose3d.length > 3 ? ' ...' : ''}`);
+    });
+    debugPoseEl.textContent = lines.join('\n');
+  } else {
+    debugPoseEl.textContent = '— (no pose this frame)';
+  }
 }
 
 function getBaseUrl() {
@@ -44,17 +84,38 @@ function getBaseUrl() {
   return path.replace(/\/[^/]+$/, '/');
 }
 
+function showLoadError(modelName, err) {
+  const msg = `${modelName} failed: ${err.message}`;
+  setStatus(msg);
+  console.error(msg, err);
+  if (loadErrorEl) {
+    loadErrorEl.textContent = msg;
+    loadErrorEl.classList.add('visible');
+  }
+}
+
 async function loadModels() {
   const base = getBaseUrl();
   setStatus('Loading ONNX models…');
-  const opts = { executionProviders: ['webgpu', 'webgl'] };
+  const opts = { executionProviders: ['wasm', 'webgl', 'webgpu'] };
+  const poseUrl = base + 'models/pose_3d.onnx';
+  const detUrl = base + 'models/person_detector.onnx';
+
   try {
-    poseSession = await ort.InferenceSession.create(base + 'models/pose.onnx', opts);
-    detSession = await ort.InferenceSession.create(base + 'models/person_detector.onnx', opts);
+    setStatus('Loading person_detector.onnx…');
+    detSession = await ort.InferenceSession.create(detUrl, opts);
   } catch (e) {
-    setStatus('Model load failed (serve over HTTP and ensure models/ exists): ' + e.message);
-    throw e;
+    showLoadError('person_detector.onnx', e);
+    return;
   }
+  try {
+    setStatus('Loading pose_3d.onnx…');
+    poseSession = await ort.InferenceSession.create(poseUrl, opts);
+  } catch (e) {
+    showLoadError('pose_3d.onnx', e);
+    return;
+  }
+  if (loadErrorEl) loadErrorEl.classList.remove('visible');
   setStatus('Models loaded. Start camera.');
 }
 
@@ -98,7 +159,7 @@ function cropAndResize(imageData, bbox, size) {
   return data;
 }
 
-function runPose(imageData, bbox) {
+function runPose(imageData, bbox, personIndex = 0) {
   const [bx, by, bw, bh] = processBbox(bbox[0], bbox[1], bbox[2], bbox[3], imageData.width, imageData.height);
   const patch = cropAndResize(imageData, [bx, by, bw, bh], POSE_INPUT);
   const tensor = new ort.Tensor('float32', patch, [1, 3, POSE_INPUT, POSE_INPUT]);
@@ -121,6 +182,14 @@ function runPose(imageData, bbox) {
     const camX = ((px - princpt[0]) / focal[0]) * depth;
     const camY = ((py - princpt[1]) / focal[1]) * depth;
     pose3d.push([camX, camY, depth]);
+  }
+  if (debugMode && lastDebug.pose) {
+    lastDebug.pose[personIndex] = {
+      outputName: poseSession.outputNames[0],
+      rawCoord: Array.from(data),
+      pose2d,
+      pose3d,
+    };
   }
   return { pose2d, pose3d };
 }
@@ -152,7 +221,19 @@ function runDetection(imageData) {
   const out = detSession.run({ [inpName]: tensor });
   const outKey = detSession.outputNames[0];
   const raw = out[outKey];
-  return postprocessYolo(raw, scale, padW, padH, w, h);
+  const bboxes = postprocessYolo(raw, scale, padW, padH, w, h);
+  if (debugMode) {
+    const data = raw.data;
+    const sampleLen = Math.min(84, data.length);
+    lastDebug.detection = {
+      outputName: outKey,
+      dims: raw.dims || raw.dims ? Array.from(raw.dims) : [],
+      size: data.length,
+      sample: Array.from(data.slice(0, sampleLen)),
+      bboxes,
+        };
+  }
+  return bboxes;
 }
 
 function postprocessYolo(raw, scale, padW, padH, imgW, imgH) {
@@ -214,9 +295,13 @@ function initThree() {
   const camera = new THREE.PerspectiveCamera(50, 1, 100, 10000);
   camera.position.set(800, -600, 1200);
   camera.lookAt(0, 0, 0);
-  const renderer = new THREE.WebGLRenderer({ canvas: canvas3d, alpha: true });
-  renderer.setSize(400, 400);
-  renderer.setPixelRatio(window.devicePixelRatio);
+  const renderer = new THREE.WebGLRenderer({ canvas: canvas3d, alpha: false });
+  const size = Math.min(400, canvas3d.parentElement?.clientWidth || 400);
+  canvas3d.width = size;
+  canvas3d.height = size;
+  renderer.setSize(size, size);
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.render(scene, camera);
 
   const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00ccff });
   const pointMaterial = new THREE.PointsMaterial({ color: 0x00ccff, size: 8 });
@@ -267,34 +352,85 @@ function updateThree(allPose3d) {
   threeRenderer.render(threeScene, threeCamera);
 }
 
-async function tick() {
-  if (!video.videoWidth || !poseSession || !detSession) return;
-  canvas2d.width = video.videoWidth;
-  canvas2d.height = video.videoHeight;
-  ctx2d.drawImage(video, 0, 0);
-  const imageData = ctx2d.getImageData(0, 0, canvas2d.width, canvas2d.height);
+function tick() {
+  const w = video.videoWidth || 640;
+  const h = video.videoHeight || 480;
+  if (!poseSession || !detSession) return;
 
+  if (canvas2d.width !== w || canvas2d.height !== h) {
+    canvas2d.width = w;
+    canvas2d.height = h;
+  }
+  ctx2d.fillStyle = '#1a1a1a';
+  ctx2d.fillRect(0, 0, w, h);
+  ctx2d.drawImage(video, 0, 0, w, h);
+
+  if (!video.videoWidth || !video.videoHeight) {
+    if (threeScene) threeRenderer.render(threeScene, threeCamera);
+    return;
+  }
+
+  if (!offscreenCanvas || offscreenCanvas.width !== w || offscreenCanvas.height !== h) {
+    offscreenCanvas = typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(w, h)
+      : Object.assign(document.createElement('canvas'), { width: w, height: h });
+    offscreenCtx = offscreenCanvas.getContext('2d');
+  }
+  offscreenCtx.drawImage(video, 0, 0, w, h);
+  let imageData;
+  try {
+    imageData = offscreenCtx.getImageData(0, 0, w, h);
+  } catch (e) {
+    ctx2d.fillStyle = '#fff';
+    ctx2d.font = '14px sans-serif';
+    ctx2d.fillText('getImageData not available', 10, 30);
+    if (threeScene) threeRenderer.render(threeScene, threeCamera);
+    return;
+  }
+
+  if (debugMode) {
+    lastDebug.pose = [];
+    lastDebug.detection = null;
+  }
   let bboxes = [];
   try {
     bboxes = runDetection(imageData);
   } catch (e) {
     console.warn('Detection:', e);
   }
-  if (bboxes.length === 0) bboxes = [[0, 0, canvas2d.width, canvas2d.height]];
+  if (bboxes.length === 0) bboxes = [[0, 0, w, h]];
 
   const allPose3d = [];
-  for (const bbox of bboxes.slice(0, 4)) {
+  const allPose2d = [];
+  for (let i = 0; i < bboxes.slice(0, 4).length; i++) {
+    const bbox = bboxes[i];
     try {
-      const { pose2d, pose3d } = runPose(imageData, bbox);
-      draw2DSkeleton(pose2d);
+      const { pose2d, pose3d } = runPose(imageData, bbox, i);
       allPose3d.push(pose3d);
+      allPose2d.push(pose2d);
     } catch (e) {
       console.warn('Pose:', e);
       allPose3d.push([]);
+      allPose2d.push([]);
     }
   }
+
+  if (debugMode) updateDebugPanel();
+
+  ctx2d.drawImage(video, 0, 0, w, h);
+  for (const pose2d of allPose2d) {
+    if (pose2d.length === JOINT_NUM) draw2DSkeleton(pose2d);
+  }
   if (threeScene) updateThree(allPose3d);
-  animationId = requestAnimationFrame(tick);
+}
+
+function startLoop() {
+  if (!threeScene) initThree();
+  function loop() {
+    animationId = requestAnimationFrame(loop);
+    tick();
+  }
+  animationId = requestAnimationFrame(loop);
 }
 
 async function startCamera() {
@@ -303,9 +439,15 @@ async function startCamera() {
     video.srcObject = stream;
     startBtn.disabled = true;
     stopBtn.disabled = false;
+    setStatus('Waiting for video…');
+    await new Promise((resolve, reject) => {
+      video.onloadeddata = () => resolve();
+      video.onerror = () => reject(new Error('Video load failed'));
+      if (video.readyState >= 2) resolve();
+    });
+    await video.play();
     setStatus('Running…');
-    if (!threeScene) initThree();
-    tick();
+    startLoop();
   } catch (e) {
     setStatus('Camera error: ' + e.message);
   }
@@ -324,6 +466,11 @@ function stopCamera() {
 
 startBtn.addEventListener('click', startCamera);
 stopBtn.addEventListener('click', stopCamera);
+debugBtn.addEventListener('click', () => {
+  debugMode = !debugMode;
+  debugPanel.classList.toggle('hidden', !debugMode);
+  debugBtn.textContent = debugMode ? 'Debug ON' : 'Debug';
+});
 
 (async function () {
   await loadModels();

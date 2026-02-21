@@ -6,20 +6,22 @@
 
 ## WebGPU browser demo
 
-1. Export ONNX models (once):
-   ```bash
-   python demo/export_for_browser.py
-   ```
-   Writes `demo/webgpu/models/pose.onnx` and `demo/webgpu/models/person_detector.onnx`.  
-   Requires a trained snapshot at `output/model_dump/snapshot_0.pth.tar` and `ultralytics` for the detector.
+- **왼쪽 패널**: 입력 스트림 (웹캠만)
+- **오른쪽 패널**: 출력 (2D 스켈레톤 + 3D 스켈레톤)
 
-2. Serve the `demo/webgpu` folder over HTTP (required for Web Workers / ONNX):
+1. 모델 준비 (demo/models/에 ONNX가 있다면):
+   ```bash
+   python demo/webgpu/prepare_models.py
+   ```
+   또는 `demo/export_for_browser.py`로 직접 export (snapshot_0.pth.tar + ultralytics 필요).
+
+2. 서버 실행:
    ```bash
    cd demo/webgpu && python -m http.server 8080
    ```
-   Then open `http://localhost:8080` (or `https://` if needed for camera).
+   브라우저에서 `http://localhost:8080` 접속.
 
-3. In the page: click “Start camera” to run detection + pose and see 2D overlay and 3D skeleton.
+3. **Start camera** 클릭 → 왼쪽에 입력 영상, 오른쪽에 2D/3D 결과 표시.
 
 ## Image demo (demo.py)
 

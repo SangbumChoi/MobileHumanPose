@@ -27,7 +27,7 @@ include = ["src*", "common*", "data*", "demo*"]
 [tool.ruff]
 line-length = 120
 target-version = "py37"
-exclude = ["tool/", "vis/", "output/", "scripts/"]
+exclude = ["tool/", "vis/", "output/", "scripts/", "demo/models/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
@@ -42,4 +42,5 @@ ignore = [
     "E701",   # multiple statements (colon)
     "E402",   # module import not at top
     "E712",   # comparison to True
+    "E731",   # do not assign lambda (use def)
 ]

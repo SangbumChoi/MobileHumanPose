@@ -1,1 +1,1 @@
-"""MobileHumanPose source package."""
+"""MobileHumanPose src package."""
