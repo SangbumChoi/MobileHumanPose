@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 
 from common.utils.pose_utils import pixel2cam, process_bbox
-from common.utils.vis import vis_3d_multiple_skeleton, vis_keypoints
+from common.utils.vis import vis_3d_with_image_plane, vis_keypoints
 from data.dataset import generate_patch_image
 from src.config import cfg
 
@@ -157,7 +157,7 @@ def main():
 
     if not args.headless:
         vis_kps = np.array(output_pose_3d_list)
-        vis_3d_multiple_skeleton(vis_kps, np.ones_like(vis_kps), skeleton, "output_pose_3d (x,y,z: camera-centered. mm.)")
+        vis_3d_with_image_plane(original_img, vis_kps, np.ones_like(vis_kps), skeleton, "3D Pose (camera space)")
 
 
 if __name__ == "__main__":

@@ -53,8 +53,10 @@ def _get_bboxes_onnx(frame_bgr, onnx_path, conf_thres=0.5):
         boxes_raw = out[:, :4]
         keep = (class_ids == PERSON_CLASS_ID) & (scores >= conf_thres)
         boxes_raw = boxes_raw[keep]
+        scores = scores[keep]
         if len(boxes_raw) == 0:
             return []
+        # cx,cy,w,h (640 space) -> x1,y1,w,h (frame space)
         boxes = []
         for b in boxes_raw:
             cx, cy, bw, bh = b
@@ -63,5 +65,17 @@ def _get_bboxes_onnx(frame_bgr, onnx_path, conf_thres=0.5):
             bw_f = bw / scale
             bh_f = bh / scale
             boxes.append([max(0, x1), max(0, y1), bw_f, bh_f])
+        scores = scores.tolist()
+        # NMS (PyTorch Ultralytics와 동일하게 iou_thres=0.45)
+        try:
+            import cv2
+            xywh = np.array(boxes, dtype=np.float32)
+            indices = cv2.dnn.NMSBoxes(
+                xywh.tolist(), scores, conf_thres, 0.45
+            )
+            idx = np.array(indices).flatten()
+            boxes = [boxes[i] for i in idx]
+        except Exception:
+            pass
         return boxes[:10]
     return []

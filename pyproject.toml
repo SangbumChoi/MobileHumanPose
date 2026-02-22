@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "MobileHumanPose"
 requires-python = ">=3.7"
 dependencies = [
+    "python-dotenv",
     "numpy",
     "tqdm",
     "torch",
@@ -19,6 +20,9 @@ dependencies = [
     "scipy",
     "gradio>=4.0.0",
 ]
+
+[project.optional-dependencies]
+data = ["roboflow", "python-dotenv"]
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -11,9 +11,9 @@ backbone = 'LPSKI'  # LPSKI | LPRES | LPWO
 
 # -----------------------------------------------------------------------------
 # Dataset
-trainset_3d = ['Dummy']  # Human36M | MuCo | Dummy
-trainset_2d = []        # MSCOCO | MPII
-testset = 'Dummy'       # Human36M | MuPoTS | MSCOCO | Dummy
+trainset_3d = ['Dummy']   # Human36M | MuCo | Dummy
+trainset_2d = ['MSCOCO']  # MSCOCO | MPII (HF whyen-wang/coco_keypoints)
+testset = 'MSCOCO'        # Human36M | MuPoTS | MSCOCO | Dummy
 
 # -----------------------------------------------------------------------------
 # Paths (config lives in src/3dpose_estimator/; root is project root)
@@ -40,11 +40,11 @@ pixel_std = (0.229, 0.224, 0.225)
 # -----------------------------------------------------------------------------
 # Training
 embedding_size = 2048
-lr_dec_epoch = [17, 21]
-end_epoch = 25
+lr_dec_epoch = [5, 10]   # fewer for MSCOCO + Dummy smoke test
+end_epoch = 12
 lr = 1e-3
 lr_dec_factor = 10
-batch_size = 64
+batch_size = 32
 
 # -----------------------------------------------------------------------------
 # Testing

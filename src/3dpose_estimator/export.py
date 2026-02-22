@@ -48,9 +48,15 @@ def parse_args():
 def get_output_path(fmt, user_path):
     if user_path:
         return user_path
-    out_dir = cfg.output_dir
-    os.makedirs(out_dir, exist_ok=True)
-    return osp.join(out_dir, "pose_3d.onnx" if fmt == "onnx" else "pose_3d.mlpackage")
+    if fmt == "onnx":
+        out_path = osp.join(cfg.root_dir, "demo", "models", "pose_3d.onnx")
+    else:
+        out_dir = cfg.output_dir
+        os.makedirs(out_dir, exist_ok=True)
+        out_path = osp.join(out_dir, "pose_3d.mlpackage")
+    if fmt == "onnx":
+        os.makedirs(osp.dirname(out_path), exist_ok=True)
+    return out_path
 
 
 def export_onnx(transformer, output_path, opset, run_check):
