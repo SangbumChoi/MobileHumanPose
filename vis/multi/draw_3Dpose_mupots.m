@@ -1,4 +1,8 @@
 function draw_3Dpose_mupots()
+% 3D visualization for MuPoTS. Run from vis/multi (or vis/single).
+% Expects: ../mupots_img_name.txt (from python scripts/export_mupots_img_names.py),
+%          preds_2d_kpt_mupots.mat, preds_3d_kpt_mupots.mat in current dir.
+% Set root_path (input images) and save_path (output) below.
  
     root_path = '/mnt/hdd1/Data/Human_pose_estimation/MU/mupots-3d-eval/MultiPersonTestSet/';
     save_path = './vis/';

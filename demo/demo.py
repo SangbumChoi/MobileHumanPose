@@ -8,13 +8,14 @@ Usage:
   python demo/demo.py -m output/model_dump/snapshot_0.pth.tar -i image.jpg [--bbox x y w h]
 """
 import argparse
+import os
 import os.path as osp
 
 import cv2
 import numpy as np
 
 from common.utils.pose_utils import pixel2cam, process_bbox
-from common.utils.vis import vis_3d_with_image_plane, vis_keypoints
+from common.utils.vis import draw_bboxes, vis_3d_with_image_plane, vis_keypoints
 from data.dataset import generate_patch_image
 from src.config import cfg
 
@@ -87,6 +88,8 @@ def main():
     parser.add_argument("--conf", type=float, default=0.5)
     parser.add_argument("--bbox", nargs=4, type=float, metavar=("X", "Y", "W", "H"), help="Optional single bbox")
     parser.add_argument("--headless", action="store_true", help="Skip 3D vis window (for CI/loop)")
+    parser.add_argument("--save_mat", action="store_true", help="Save preds_2d_kpt_coco.mat, preds_3d_kpt_coco.mat, coco_img_name.txt (same format as MSCOCO.evaluate)")
+    parser.add_argument("--result_dir", default=None, help="Directory for .mat and .txt when --save_mat (default: output/result)")
     args = parser.parse_args()
 
     use_onnx = args.model_path.endswith(".onnx")
@@ -145,19 +148,46 @@ def main():
         output_pose_3d_list.append(pose_3d.copy())
 
     vis_img = original_img.copy()
+    draw_bboxes(vis_img, bbox_list, color=(0, 255, 0), thickness=2)
     for n in range(person_num):
         vis_kps = np.zeros((3, joint_num))
         vis_kps[0, :] = output_pose_2d_list[n][:, 0]
         vis_kps[1, :] = output_pose_2d_list[n][:, 1]
         vis_kps[2, :] = 1
         vis_img = vis_keypoints(vis_img, vis_kps, skeleton)
-    out_2d = osp.join(osp.dirname(osp.abspath(img_path)) or ".", "output_pose_2d.jpg")
+    out_dir = osp.dirname(osp.abspath(img_path)) or "."
+    out_2d = osp.join(out_dir, "output_pose_2d.jpg")
+    out_3d = osp.join(out_dir, "output_pose_3d.jpg")
     cv2.imwrite(out_2d, vis_img)
     print("Saved", out_2d)
 
+    vis_kps = np.array(output_pose_3d_list)
+    vis_3d_with_image_plane(
+        original_img, vis_kps, np.ones_like(vis_kps), skeleton,
+        title="3D Pose (camera space)", save_path=out_3d
+    )
+    print("Saved", out_3d)
+
     if not args.headless:
-        vis_kps = np.array(output_pose_3d_list)
-        vis_3d_with_image_plane(original_img, vis_kps, np.ones_like(vis_kps), skeleton, "3D Pose (camera space)")
+        vis_3d_with_image_plane(
+            original_img, vis_kps, np.ones_like(vis_kps), skeleton,
+            title="3D Pose (camera space)", save_path=None
+        )
+
+    if args.save_mat:
+        import scipy.io as sio
+        result_dir = args.result_dir or osp.join(osp.dirname(osp.dirname(osp.abspath(__file__))), "output", "result")
+        os.makedirs(result_dir, exist_ok=True)
+        basename = osp.splitext(osp.basename(img_path))[0]
+        key = "coco_" + basename
+        pred_2d_save = {key: [output_pose_2d_list[n] for n in range(person_num)]}
+        pred_3d_save = {key: [output_pose_3d_list[n] for n in range(person_num)]}
+        sio.savemat(osp.join(result_dir, "preds_2d_kpt_coco.mat"), pred_2d_save)
+        sio.savemat(osp.join(result_dir, "preds_3d_kpt_coco.mat"), pred_3d_save)
+        txt_path = osp.join(result_dir, "coco_img_name.txt")
+        with open(txt_path, "w") as f:
+            f.write(key + "\n")
+        print("Saved", osp.join(result_dir, "preds_2d_kpt_coco.mat"), osp.join(result_dir, "preds_3d_kpt_coco.mat"), txt_path)
 
 
 if __name__ == "__main__":

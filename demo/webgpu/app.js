@@ -97,20 +97,38 @@ function showLoadError(modelName, err) {
 async function loadModels() {
   const base = getBaseUrl();
   setStatus('Loading ONNX models…');
-  const opts = { executionProviders: ['wasm', 'webgl', 'webgpu'] };
+  // Detector: WebGL has unsupported ops; prefer wasm (works everywhere), then webgpu if available.
   const poseUrl = base + 'models/pose_3d.onnx';
   const detUrl = base + 'models/person_detector.onnx';
 
   try {
     setStatus('Loading person_detector.onnx…');
-    detSession = await ort.InferenceSession.create(detUrl, opts);
+    try {
+      detSession = await ort.InferenceSession.create(detUrl, { executionProviders: ['webgpu', 'wasm'] });
+    } catch (webgpuErr) {
+      detSession = await ort.InferenceSession.create(detUrl, { executionProviders: ['wasm'] });
+    }
   } catch (e) {
     showLoadError('person_detector.onnx', e);
     return;
   }
   try {
-    setStatus('Loading pose_3d.onnx…');
-    poseSession = await ort.InferenceSession.create(poseUrl, opts);
+    setStatus('Loading pose model…');
+    const poseUrls = [base + 'models/pose_3d.onnx', base + 'models/pose.onnx'];
+    let lastErr;
+    for (const url of poseUrls) {
+      for (const eps of [['wasm'], ['webgpu', 'webgl', 'wasm']]) {
+        try {
+          poseSession = await ort.InferenceSession.create(url, { executionProviders: eps });
+          lastErr = null;
+          break;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      if (poseSession) break;
+    }
+    if (!poseSession) throw lastErr || new Error('pose load failed');
   } catch (e) {
     showLoadError('pose_3d.onnx', e);
     return;

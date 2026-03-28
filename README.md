@@ -42,6 +42,28 @@ ${ROOT}
 └── output/           # log, model_dump, result, vis (생성됨)
 ```
 
+## 3D visualization (GitHub 워크플로 준수, Python 기준)
+
+[GitHub 3D visualization](https://github.com/SangbumChoi/MobileHumanPose#3d-visualization)과 동일한 순서: **이미지 이름 .txt → preds_2d/3d_kpt_$DB_NAME.mat 배치 → 시각화**. 시각화는 **전부 Python**으로 하며, 2D에는 **person bbox**와 스켈레톘, 3D는 **원근(view)** 을 반영해 그립니다.
+
+1. **이미지 이름 목록(.txt)**  
+   ```bash
+   python scripts/export_coco_img_names.py    # → vis/coco_img_name.txt
+   python scripts/export_mupots_img_names.py # → vis/mupots_img_name.txt
+   ```
+   데모 한 장만 쓸 때는 `demo/demo.py --save_mat`로 `output/result/coco_img_name.txt`와 .mat를 함께 생성할 수 있음.
+2. **테스트 결과(.mat)**  
+   `preds_2d_kpt_$DB_NAME.mat`, `preds_3d_kpt_$DB_NAME.mat`를 `output/result/` 등에 두고, 시각화 시 `--result_dir` 또는 `--mat_2d`/`--mat_3d`로 지정.
+3. **시각화 (Python만 사용)**  
+   ```bash
+   python vis/draw_pose.py --dataset coco --result_dir output/result --root_path /path/to/images --save_dir vis/out
+   python vis/draw_pose.py --dataset mupots --result_dir output/result --root_path /path/to/MultiPersonTestSet --save_dir vis/out
+   ```
+   - 2D: person bbox + 키포인트/스켈레톘  
+   - 3D: 카메라 좌표 기준 키포인트, 원근 표현(view 고정)
+
+MATLAB(`vis/single`, `vis/multi`의 `.m`)은 레거시이며, 동일 결과는 위 Python으로만 재현 가능합니다. 자세한 내용은 [vis/README.md](vis/README.md)를 참고하세요.
+
 ## Docs (사용법)
 
 | 문서 | 내용 |

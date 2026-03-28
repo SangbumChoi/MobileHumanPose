@@ -3,6 +3,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+def draw_bboxes(img, bbox_list, color=(0, 255, 0), thickness=2):
+    """Draw person bounding boxes. bbox_list: list of [x, y, w, h] (xy top-left, width/height)."""
+    for bbox in bbox_list:
+        x, y, w, h = [int(round(v)) for v in bbox[:4]]
+        cv2.rectangle(img, (x, y), (x + w, y + h), color, thickness, lineType=cv2.LINE_AA)
+    return img
+
+
 def vis_keypoints(img, kps, kps_lines, kp_thresh=0.4, alpha=1):
     """이미지 크기에 맞춰 점/선 두께를 자동 스케일링합니다."""
     h, w = img.shape[:2]
@@ -77,6 +85,44 @@ def vis_3d_skeleton(kpt_3d, kpt_3d_vis, kps_lines, filename=None):
     plt.show()
     cv2.waitKey(0)
 
+
+def vis_3d_skeleton_to_file(kpt_3d, kpt_3d_vis, kps_lines, path, title=None, view_elev=7, view_azim=62):
+    """Draw 3D skeleton and save to file (no interactive plt.show). Same layout as MATLAB view(62,7)."""
+    fig = plt.figure(figsize=(6, 6))
+    ax = fig.add_subplot(111, projection="3d")
+    cmap = plt.get_cmap("rainbow")
+    colors = [cmap(i) for i in np.linspace(0, 1, len(kps_lines) + 2)]
+    colors = [np.array((c[0], c[1], c[2])) for c in colors]
+    for l in range(len(kps_lines)):
+        i1, i2 = kps_lines[l][0], kps_lines[l][1]
+        x = np.array([kpt_3d[i1, 0], kpt_3d[i2, 0]])
+        y = np.array([kpt_3d[i1, 1], kpt_3d[i2, 1]])
+        z = np.array([kpt_3d[i1, 2], kpt_3d[i2, 2]])
+        if kpt_3d_vis[i1, 0] > 0 and kpt_3d_vis[i2, 0] > 0:
+            ax.plot(x, z, -y, c=colors[l], linewidth=2)
+        if kpt_3d_vis[i1, 0] > 0:
+            ax.scatter(kpt_3d[i1, 0], kpt_3d[i1, 2], -kpt_3d[i1, 1], c=[colors[l]], marker="o")
+        if kpt_3d_vis[i2, 0] > 0:
+            ax.scatter(kpt_3d[i2, 0], kpt_3d[i2, 2], -kpt_3d[i2, 1], c=[colors[l]], marker="o")
+    ax.set_facecolor((1, 1, 1))
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    ax.set_zlabel("")
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    ax.set_zticklabels([])
+    xc, yc, zc = np.mean(kpt_3d, axis=0)
+    margin = 1000
+    ax.set_xlim(xc - margin, xc + margin)
+    ax.set_ylim(zc - margin, zc + margin)
+    ax.set_zlim(-yc - margin, -yc + margin)
+    ax.view_init(elev=view_elev, azim=view_azim)
+    if title:
+        ax.set_title(title)
+    plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+
 def vis_3d_multiple_skeleton(kpt_3d, kpt_3d_vis, kps_lines, filename=None):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -120,8 +166,8 @@ _SKELETON_COLORS = [
 _EDGE_TO_COLOR_IDX = [0, 0, 1, 1, 2, 2, 3, 4, 4, 5, 6, 6, 7, 8, 8, 9]  # per kps_lines index
 
 
-def vis_3d_with_image_plane(img_bgr, kpt_3d, kpt_3d_vis, kps_lines, title="3D Pose"):
-    """2D 이미지를 3D 평면에 배치하고, 바닥 그리드 + 컬러 스켈레톤으로 시각화."""
+def vis_3d_with_image_plane(img_bgr, kpt_3d, kpt_3d_vis, kps_lines, title="3D Pose", save_path=None):
+    """2D 이미지를 3D 평면에 배치하고, 바닥 그리드 + 컬러 스켈레톤으로 시각화. save_path가 있으면 파일로 저장 후 종료."""
     from mpl_toolkits.mplot3d import art3d
 
     fig = plt.figure(figsize=(12, 8))
@@ -193,6 +239,10 @@ def vis_3d_with_image_plane(img_bgr, kpt_3d, kpt_3d_vis, kps_lines, title="3D Po
     ax.set_title(title)
     ax.view_init(elev=15, azim=-70)
     plt.tight_layout()
-    plt.show()
-    cv2.waitKey(0)
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches="tight", facecolor="#1a1a2e")
+        plt.close(fig)
+    else:
+        plt.show()
+        cv2.waitKey(0)
 
