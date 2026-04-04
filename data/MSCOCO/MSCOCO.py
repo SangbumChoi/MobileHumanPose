@@ -1,25 +1,25 @@
-import os
-import os.path as osp
-import numpy as np
-from pycocotools.coco import COCO
-from config import cfg
-import scipy.io as sio
 import json
-import cv2
+import os.path as osp
 import random
-import math
-from utils.pose_utils import pixel2cam, process_bbox
-from utils.vis import vis_keypoints, vis_3d_skeleton
+
+import cv2
+import numpy as np
+import scipy.io as sio
+from pycocotools.coco import COCO
+
+from common.utils.pose_utils import pixel2cam, process_bbox
+from common.utils.vis import vis_keypoints
+from src.config import cfg
 
 
 class MSCOCO:
     def __init__(self, data_split):
         self.data_split = data_split
-        self.img_dir = osp.join('/','home', 'centos', 'datasets', 'coco', 'images')
-        self.train_annot_path = osp.join('/','home', 'centos', 'datasets', 'coco', 'annotations', 'person_keypoints_train2017.json')
-        self.test_annot_path = osp.join('/','home', 'centos', 'datasets', 'coco', 'annotations', 'person_keypoints_val2017.json')
-        self.human_3d_bbox_root_dir = osp.join('/', 'home', 'centos','datasets', 'coco', 'bbox_root', 'bbox_root_coco_output.json')
-        
+        self.img_dir = osp.join(cfg.root_dir, 'data', 'MSCOCO', 'images')
+        self.train_annot_path = osp.join(cfg.root_dir, 'data', 'MSCOCO', 'annotations', 'person_keypoints_train2017.json')
+        self.test_annot_path = osp.join(cfg.root_dir, 'data', 'MSCOCO', 'annotations', 'person_keypoints_val2017.json')
+        self.human_3d_bbox_root_dir = osp.join(cfg.root_dir, 'data', 'MSCOCO', 'bbox_root', 'bbox_root_coco_output.json')
+
         if self.data_split == 'train':
             self.joint_num = 19 # original: 17, but manually added 'Thorax', 'Pelvis'
             self.joints_name = ('Nose', 'L_Eye', 'R_Eye', 'L_Ear', 'R_Ear', 'L_Shoulder', 'R_Shoulder', 'L_Elbow', 'R_Elbow', 'L_Wrist', 'R_Wrist', 'L_Hip', 'R_Hip', 'L_Knee', 'R_Knee', 'L_Ankle', 'R_Ankle', 'Thorax', 'Pelvis')
@@ -31,7 +31,7 @@ class MSCOCO:
             self.rshoulder_idx = self.joints_name.index('R_Shoulder')
             self.lhip_idx = self.joints_name.index('L_Hip')
             self.rhip_idx = self.joints_name.index('R_Hip')
-       
+
         else:
             ## testing settings (when test model trained on the MuCo-3DHP dataset)
             self.joint_num = 21 # MuCo-3DHP
@@ -57,8 +57,8 @@ class MSCOCO:
 
                 if (ann['image_id'] not in db.imgs) or ann['iscrowd'] or (ann['num_keypoints'] == 0):
                     continue
-                
-                bbox = process_bbox(ann['bbox'], width, height) 
+
+                bbox = process_bbox(ann['bbox'], width, height)
                 if bbox is None: continue
 
                 # joints and vis
@@ -84,21 +84,21 @@ class MSCOCO:
                     'bbox': bbox,
                     'joint_img': joint_img, # [org_img_x, org_img_y, 0]
                     'joint_vis': joint_vis,
-                    'f': np.array([1500, 1500]), 
-                    'c': np.array([width/2, height/2]) 
+                    'f': np.array([1500, 1500]),
+                    'c': np.array([width/2, height/2])
                 })
 
         elif self.data_split == 'test':
             db = COCO(self.test_annot_path)
             with open(self.human_3d_bbox_root_dir) as f:
                 annot = json.load(f)
-            data = [] 
+            data = []
             for i in range(len(annot)):
                 image_id = annot[i]['image_id']
                 img = db.loadImgs(image_id)[0]
                 img_path = osp.join(self.img_dir, 'val2017', img['file_name'])
                 fx, fy, cx, cy = 1500, 1500, img['width']/2, img['height']/2
-                f = np.array([fx, fy]); c = np.array([cx, cy]);
+                f = np.array([fx, fy]); c = np.array([cx, cy])
                 root_cam = np.array(annot[i]['root_cam']).reshape(3)
                 bbox = np.array(annot[i]['bbox']).reshape(4)
 
@@ -121,7 +121,7 @@ class MSCOCO:
         return data
 
     def evaluate(self, preds, result_dir):
-        
+
         print('Evaluation start...')
         gts = self.data
         sample_num = len(preds)
@@ -130,7 +130,7 @@ class MSCOCO:
         pred_2d_save = {}
         pred_3d_save = {}
         for n in range(sample_num):
-            
+
             gt = gts[n]
             f = gt['f']
             c = gt['c']
@@ -138,7 +138,7 @@ class MSCOCO:
             gt_3d_root = gt['root_cam']
             img_name = gt['img_path'].split('/')
             img_name = 'coco_' + img_name[-1].split('.')[0] # e.g., coco_00000000
-            
+
             # restore coordinates to original space
             pred_2d_kpt = preds[n].copy()
             # only consider eval_joint
@@ -166,13 +166,13 @@ class MSCOCO:
 
             # back project to camera coordinate system
             pred_3d_kpt = pixel2cam(pred_2d_kpt, f, c)
-            
+
             # 3d kpt save
             if img_name in pred_3d_save:
                 pred_3d_save[img_name].append(pred_3d_kpt)
             else:
                 pred_3d_save[img_name] = [pred_3d_kpt]
-        
+
         output_path = osp.join(result_dir,'preds_2d_kpt_coco.mat')
         sio.savemat(output_path, pred_2d_save)
         print("Testing result is saved at " + output_path)

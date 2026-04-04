@@ -1,187 +1,115 @@
-# Github Code of "MobileHumanPose: Toward real-time 3D human pose estimation in mobile devices"
+# MobileHumanPose
 
-#### [2021.11.23] There will be massive refactoring and optimization expected. It will be released as soon as possible including new model.pth, Please wait for the model!(expecting end of December)
-#### [2022.05.19] Dummy dataloader is added. This will make reduce about to 100x faster that user to generate dummy pth.tar file of MobileHumanPose model for their PoC.
+> PyTorch implementation of **MobileHumanPose: Toward real-time 3D human pose estimation in mobile devices** (CVPRW 2021).
+
+**Last updated:** 2026-02-21
 
 ## Introduction
 
-This repo is official **[PyTorch](https://pytorch.org)** implementation of **[MobileHumanPose: Toward real-time 3D human pose estimation in mobile devices(CVPRW 2021)](https://openaccess.thecvf.com/content/CVPR2021W/MAI/html/Choi_MobileHumanPose_Toward_Real-Time_3D_Human_Pose_Estimation_in_Mobile_Devices_CVPRW_2021_paper.html)**.
+Official implementation of [MobileHumanPose (CVPRW 2021)](https://openaccess.thecvf.com/content/CVPR2021W/MAI/html/Choi_MobileHumanPose_Toward_Real-Time_3D_Human_Pose_Estimation_in_Mobile_Devices_CVPRW_2021_paper.html).  
+파이프라인: **데이터셋 생성 → 학습 → 가중치 변환 → 데모 실행**
 
-## Dependencies
-* [PyTorch](https://pytorch.org)
-* [CUDA](https://developer.nvidia.com/cuda-downloads)
-* [cuDNN](https://developer.nvidia.com/cudnn)
-* [Anaconda](https://www.anaconda.com/download/)
-* [COCO API](https://github.com/cocodataset/cocoapi)
+## Quick Start
 
-This code is tested under Ubuntu 16.04, CUDA 11.2 environment with two NVIDIA RTX or V100 GPUs.
+```bash
+pip install -e .
+python scripts/generate_dummy_data.py   # 또는 python data/Dummy/generate_dummy_data.py
+python -m src.train
+python -m src.test --test_epoch 0
+python demo/web_video_inference.py     # http://localhost:7860
+```
 
-Python 3.6.5 version with virtualenv is used for development.
+**상세 사용법:** [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
 
 ## Directory
 
-### Root
-The `${ROOT}` is described as below.
 ```
 ${ROOT}
-|-- data
-|-- demo
-|-- common
-|-- main
-|-- tool
-|-- vis
-`-- output
-```
-* `data` contains data loading codes and soft links to images and annotations directories.
-* `demo` contains demo codes.
-* `common` contains kernel codes for 3d multi-person pose estimation system. Also custom backbone is implemented in this repo
-* `main` contains high-level codes for training or testing the network.
-* `tool` contains data pre-processing codes. You don't have to run this code. I provide pre-processed data below.
-* `vis` contains scripts for 3d visualization.
-* `output` contains log, trained models, visualized outputs, and test result.
-
-### Data
-You need to follow directory structure of the `data` as below.
-```
-${POSE_ROOT}
-|-- data
-|   |-- Human36M
-|   |   |-- bbox_root
-|   |   |   |-- bbox_root_human36m_output.json
-|   |   |-- images
-|   |   |-- annotations
-|   |-- MPII
-|   |   |-- images
-|   |   |-- annotations
-|   |-- MSCOCO
-|   |   |-- bbox_root
-|   |   |   |-- bbox_root_coco_output.json
-|   |   |-- images
-|   |   |   |-- train2017
-|   |   |   |-- val2017
-|   |   |-- annotations
-|   |-- MuCo
-|   |   |-- data
-|   |   |   |-- augmented_set
-|   |   |   |-- unaugmented_set
-|   |   |   |-- MuCo-3DHP.json
-|   |-- MuPoTS
-|   |   |-- bbox_root
-|   |   |   |-- bbox_mupots_output.json
-|   |   |-- data
-|   |   |   |-- MultiPersonTestSet
-|   |   |   |-- MuPoTS-3D.json
-```
-* Download Human3.6M parsed data [[data](https://drive.google.com/drive/folders/1kgVH-GugrLoc9XyvP6nRoaFpw3TmM5xK?usp=sharing)]
-* Download MPII parsed data [[images](http://human-pose.mpi-inf.mpg.de/)][[annotations](https://drive.google.com/drive/folders/1MmQ2FRP0coxHGk0Ntj0JOGv9OxSNuCfK?usp=sharing)]
-* Download MuCo parsed and composited data [[data](https://drive.google.com/drive/folders/1yL2ey3aWHJnh8f_nhWP--IyC9krAPsQN?usp=sharing)]
-* Download MuPoTS parsed data [[images](http://gvv.mpi-inf.mpg.de/projects/SingleShotMultiPerson/)][[annotations](https://drive.google.com/drive/folders/1WmfQ8UEj6nuamMfAdkxmrNcsQTrTfKK_?usp=sharing)]
-* All annotation files follow [MS COCO format](http://cocodataset.org/#format-data).
-* If you want to add your own dataset, you have to convert it to [MS COCO format](http://cocodataset.org/#format-data).
-
-### Output
-You need to follow the directory structure of the `output` folder as below.
-```
-${POSE_ROOT}
-|-- output
-|-- |-- log
-|-- |-- model_dump
-|-- |-- result
-`-- |-- vis
-```
-* Creating `output` folder as soft link form is recommended instead of folder form because it would take large storage capacity.
-* `log` folder contains training log file.
-* `model_dump` folder contains saved checkpoints for each epoch.
-* `result` folder contains final estimation files generated in the testing stage.
-* `vis` folder contains visualized results.
-
-### 3D visualization
-* Run `$DB_NAME_img_name.py` to get image file names in `.txt` format.
-* Place your test result files (`preds_2d_kpt_$DB_NAME.mat`, `preds_3d_kpt_$DB_NAME.mat`) in `single` or `multi` folder.
-* Run `draw_3Dpose_$DB_NAME.m`
-
-<p align="middle">
-<img src="assets/test.JPG">
-</p>
-
-## Running 3DMPPE_POSENET
-
-### Requirements
-
-```shell
-cd main
-pip install -r requirements.txt
+├── assets/           # README, demo용 이미지/영상
+│   └── videos/       # Web inference 출력 (pose_*.mp4)
+├── common/           # 공용 기능 (backbone, logger, timer, base Trainer/Tester, vis)
+├── data/             # 학습 데이터, DataLoader 정의 (Human36M, MuCo, MuPoTS, Dummy, MSCOCO, MPII)
+├── demo/             # 시각화 및 추론: webcam 스트리밍(브라우저), 이미지/비디오 추론
+├── docs/             # 사용법 문서 (모든 사용법은 여기 참조)
+├── runs/             # 학습/평가 스크립트 (train.sh 등)
+├── src/              # 모델 구현
+│   ├── 3dpose_estimator/   # 3D keypoint (PoseNet)
+│   ├── box_detector/       # person bbox
+│   └── distance_estimator/ # 절대 z (root depth, RootNet)
+├── scripts/          # generate_dummy_data, test_config_combinations 등
+├── tool/             # 데이터 전처리 (선택)
+├── vis/              # Legacy MATLAB 2D/3D; Python: common.utils.vis
+└── output/           # log, model_dump, result, vis (생성됨)
 ```
 
-### Setup Training
-* In the `main/config.py`, you can change settings of the model including dataset to use, network backbone, and input size and so on.
+## 3D visualization (GitHub 워크플로 준수, Python 기준)
 
-### Train
-In the `main` folder, run
-```bash
-python train.py --gpu 0-1 --backbone LPSKI
-```
-to train the network on the GPU 0,1. 
+[GitHub 3D visualization](https://github.com/SangbumChoi/MobileHumanPose#3d-visualization)과 동일한 순서: **이미지 이름 .txt → preds_2d/3d_kpt_$DB_NAME.mat 배치 → 시각화**. 시각화는 **전부 Python**으로 하며, 2D에는 **person bbox**와 스켈레톘, 3D는 **원근(view)** 을 반영해 그립니다.
 
-If you want to continue experiment, run 
-```bash
-python train.py --gpu 0-1 --backbone LPSKI --continue
-```
-`--gpu 0,1` can be used instead of `--gpu 0-1`.
+1. **이미지 이름 목록(.txt)**  
+   ```bash
+   python scripts/export_coco_img_names.py    # → vis/coco_img_name.txt
+   python scripts/export_mupots_img_names.py # → vis/mupots_img_name.txt
+   ```
+   데모 한 장만 쓸 때는 `demo/demo.py --save_mat`로 `output/result/coco_img_name.txt`와 .mat를 함께 생성할 수 있음.
+2. **테스트 결과(.mat)**  
+   `preds_2d_kpt_$DB_NAME.mat`, `preds_3d_kpt_$DB_NAME.mat`를 `output/result/` 등에 두고, 시각화 시 `--result_dir` 또는 `--mat_2d`/`--mat_3d`로 지정.
+3. **시각화 (Python만 사용)**  
+   ```bash
+   python vis/draw_pose.py --dataset coco --result_dir output/result --root_path /path/to/images --save_dir vis/out
+   python vis/draw_pose.py --dataset mupots --result_dir output/result --root_path /path/to/MultiPersonTestSet --save_dir vis/out
+   ```
+   - 2D: person bbox + 키포인트/스켈레톘  
+   - 3D: 카메라 좌표 기준 키포인트, 원근 표현(view 고정)
 
-### Test
-Place trained model at the `output/model_dump/`.
+MATLAB(`vis/single`, `vis/multi`의 `.m`)은 레거시이며, 동일 결과는 위 Python으로만 재현 가능합니다. 자세한 내용은 [vis/README.md](vis/README.md)를 참고하세요.
 
-In the `main` folder, run 
-```bash
-python test.py --gpu 0-1 --test_epoch 20-21 --backbone LPSKI
-```
-to test the network on the GPU 0,1 with 20th and 21th epoch trained model. `--gpu 0,1` can be used instead of `--gpu 0-1`. For the backbone you can either choose 
-BACKBONE_DICT = {
-    'LPRES':LpNetResConcat,
-    'LPSKI':LpNetSkiConcat,
-    'LPWO':LpNetWoConcat
-    }
+## Docs (사용법)
 
-#### Human3.6M dataset using protocol 1
-For the evaluation, you can run `test.py` or there are evaluation codes in `Human36M`.
-<p align="center">
-<img src="assets/protocol1.JPG">
-</p>
+| 문서 | 내용 |
+|------|------|
+| [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | 전체 파이프라인: 데이터셋 → 학습 → 변환 → 데모 |
+| [docs/COREML_ONNX_CONVERSION.md](docs/COREML_ONNX_CONVERSION.md) | ONNX / CoreML 변환 |
+| [docs/README.md](docs/README.md) | 문서 인덱스 |
 
-#### Human3.6M dataset using protocol 2
-For the evaluation, you can run `test.py` or there are evaluation codes in `Human36M`.
-<p align="center">
-<img src="assets/protocol2.JPG">
-</p>
+## Agents (Cursor)
 
-#### MuPoTS-3D dataset
-For the evaluation, run `test.py`.  After that, move `data/MuPoTS/mpii_mupots_multiperson_eval.m` in `data/MuPoTS/data`. Also, move the test result files (`preds_2d_kpt_mupots.mat` and `preds_3d_kpt_mupots.mat`) in `data/MuPoTS/data`. Then run `mpii_mupots_multiperson_eval.m` with your evaluation mode arguments.
-<p align="center">
-<img src="assets/mupots.JPG">
-</p>
+프로젝트에 포함된 subagent를 활용하면 작업 검증과 플로우 점검을 자동화할 수 있습니다.
 
-#### TFLite inference
-For the inference in mobile devices we also tested in mobile devices which converting PyTorch implementation through onnx and finally serving into TFlite.
-Official demo app is available in [here](https://github.com/tucan9389/PoseEstimation-TFLiteSwift)
+| Agent | 역할 | 사용법 |
+|-------|------|--------|
+| **verifier** | 완료된 작업 검증, 구현 정상 동작 확인, 테스트 실행 후 통과/미완료 항목 보고 | 작업 완료 후 `verifier subagent로 검증해줘` 또는 Cursor에서 verifier 호출 |
 
-## Reference
+### Verifier가 확인하는 흐름
 
-**What this repo cames from:**
-Training section and is based on following paper and github
-* [PyTorch](https://pytorch.org) implementation of [Camera Distance-aware Top-down Approach for 3D Multi-person Pose Estimation from a Single RGB Image (ICCV 2019)](https://arxiv.org/abs/1907.11346).
-* Flexible and simple code.
-* Compatibility for most of the publicly available 2D and 3D, single and multi-person pose estimation datasets including **[Human3.6M](http://vision.imar.ro/human3.6m/description.php), [MPII](http://human-pose.mpi-inf.mpg.de/), [MS COCO 2017](http://cocodataset.org/#home), [MuCo-3DHP](http://gvv.mpi-inf.mpg.de/projects/SingleShotMultiPerson/) and [MuPoTS-3D](http://gvv.mpi-inf.mpg.de/projects/SingleShotMultiPerson/)**.
-* Human pose estimation visualization code.
+1. **데이터셋** – `scripts/generate_dummy_data.py` 또는 `data/Dummy/generate_dummy_data.py`
+2. **학습** – `python -m src.train`, `runs/train.sh`
+3. **변환** – `python -m src.3dpose_estimator.export -f onnx/coreml -m <model>`
+4. **데모** – `demo/demo.py`, `demo/web_video_inference.py`, `demo/video_inference.py`
 
-```
+Agent 설정: `.cursor/agents/verifier.md`
+
+## Changelog
+
+| Date | Change |
+|------|--------|
+| 2026-02-21 | Agents(verifier) 추가, docs 구조 정리, 디렉터리 역할 명시 |
+| 2026-02-20 | Web video inference (Gradio), pre-commit+ruff, README overhaul |
+| 2022-05-19 | Dummy dataloader for fast PoC |
+| 2021-11-23 | Initial release |
+
+## Citation
+
+```bibtex
 @InProceedings{Choi_2021_CVPR,
     author    = {Choi, Sangbum and Choi, Seokeon and Kim, Changick},
     title     = {MobileHumanPose: Toward Real-Time 3D Human Pose Estimation in Mobile Devices},
-    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Workshops},
-    month     = {June},
+    booktitle = {CVPR Workshops},
     year      = {2021},
     pages     = {2328-2338}
 }
 ```
 
+## License
+
+MIT

@@ -1,22 +1,23 @@
-import os
-import os.path as osp
-import scipy.io as sio
-import numpy as np
-from pycocotools.coco import COCO
-from config import cfg
 import json
-import cv2
+import os.path as osp
 import random
-import math
-from utils.pose_utils import pixel2cam, process_bbox
-from utils.vis import vis_keypoints, vis_3d_skeleton
+
+import cv2
+import numpy as np
+import scipy.io as sio
+from pycocotools.coco import COCO
+
+from common.utils.pose_utils import pixel2cam, process_bbox
+from common.utils.vis import vis_keypoints
+from src.config import cfg
+
 
 class MuPoTS:
     def __init__(self, data_split):
         self.data_split = data_split
-        self.img_dir = osp.join('/', 'data', 'MuPoTS', 'data', 'MultiPersonTestSet')
-        self.test_annot_path = osp.join('/', 'data', 'MuPoTS', 'data', 'MuPoTS-3D.json')
-        self.human_bbox_root_dir = osp.join('/', 'data', 'MuPoTS', 'bbox_root', 'bbox_root_mupots_output.json')
+        self.img_dir = osp.join(cfg.root_dir, 'data', 'MuPoTS', 'data', 'MultiPersonTestSet')
+        self.test_annot_path = osp.join(cfg.root_dir, 'data', 'MuPoTS', 'data', 'MuPoTS-3D.json')
+        self.human_bbox_root_dir = osp.join(cfg.root_dir, 'data', 'MuPoTS', 'bbox_root', 'bbox_root_mupots_output.json')
         self.joint_num = 21 # MuCo-3DHP
         self.joints_name = ('Head_top', 'Thorax', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Pelvis', 'Spine', 'Head', 'R_Hand', 'L_Hand', 'R_Toe', 'L_Toe') # MuCo-3DHP
         self.original_joint_num = 17 # MuPoTS
@@ -30,11 +31,11 @@ class MuPoTS:
         self.data = self.load_data()
 
     def load_data(self):
-        
+
         if self.data_split != 'test':
             print('Unknown data subset')
             assert 0
-        
+
         data = []
         db = COCO(self.test_annot_path)
 
@@ -50,7 +51,7 @@ class MuPoTS:
                 img = db.loadImgs(image_id)[0]
                 img_path = osp.join(self.img_dir, img['file_name'])
                 fx, fy, cx, cy = img['intrinsic']
-                f = np.array([fx, fy]); c = np.array([cx, cy]);
+                f = np.array([fx, fy]); c = np.array([cx, cy])
 
                 joint_cam = np.array(ann['keypoints_cam'])
                 root_cam = joint_cam[self.root_idx]
@@ -59,15 +60,15 @@ class MuPoTS:
                 joint_img = np.concatenate([joint_img, joint_cam[:,2:]],1)
                 joint_img[:,2] = joint_img[:,2] - root_cam[2]
                 joint_vis = np.ones((self.original_joint_num,1))
-                
+
                 bbox = np.array(ann['bbox'])
                 img_width, img_height = img['width'], img['height']
                 bbox = process_bbox(bbox, img_width, img_height)
                 if bbox is None: continue
-                
+
                 data.append({
                     'img_path': img_path,
-                    'bbox': bbox, 
+                    'bbox': bbox,
                     'joint_img': joint_img, # [org_img_x, org_img_y, depth - root_depth]
                     'joint_cam': joint_cam, # [X, Y, Z] in camera coordinate
                     'joint_vis': joint_vis,
@@ -75,19 +76,19 @@ class MuPoTS:
                     'f': f,
                     'c': c,
                 })
-           
+
         else:
             print("Get bounding box and root from " + self.human_bbox_root_dir)
             with open(self.human_bbox_root_dir) as f:
                 annot = json.load(f)
-            
+
             for i in range(len(annot)):
                 image_id = annot[i]['image_id']
                 img = db.loadImgs(image_id)[0]
                 img_width, img_height = img['width'], img['height']
                 img_path = osp.join(self.img_dir, img['file_name'])
                 fx, fy, cx, cy = img['intrinsic']
-                f = np.array([fx, fy]); c = np.array([cx, cy]);
+                f = np.array([fx, fy]); c = np.array([cx, cy])
                 root_cam = np.array(annot[i]['root_cam']).reshape(3)
                 bbox = np.array(annot[i]['bbox']).reshape(4)
 
@@ -105,16 +106,16 @@ class MuPoTS:
         return data
 
     def evaluate(self, preds, result_dir):
-        
+
         print('Evaluation start...')
         gts = self.data
         sample_num = len(preds)
         joint_num = self.original_joint_num
- 
+
         pred_2d_save = {}
         pred_3d_save = {}
         for n in range(sample_num):
-            
+
             gt = gts[n]
             f = gt['f']
             c = gt['c']
@@ -122,7 +123,7 @@ class MuPoTS:
             gt_3d_root = gt['root_cam']
             img_name = gt['img_path'].split('/')
             img_name = img_name[-2] + '_' + img_name[-1].split('.')[0] # e.g., TS1_img_0001
-            
+
             # restore coordinates to original space
             pred_2d_kpt = preds[n].copy()
             # only consider eval_joint
@@ -150,13 +151,13 @@ class MuPoTS:
 
             # back project to camera coordinate system
             pred_3d_kpt = pixel2cam(pred_2d_kpt, f, c)
-            
+
             # 3d kpt save
             if img_name in pred_3d_save:
                 pred_3d_save[img_name].append(pred_3d_kpt)
             else:
                 pred_3d_save[img_name] = [pred_3d_kpt]
-        
+
         output_path = osp.join(result_dir,'preds_2d_kpt_mupots.mat')
         sio.savemat(output_path, pred_2d_save)
         print("Testing result is saved at " + output_path)

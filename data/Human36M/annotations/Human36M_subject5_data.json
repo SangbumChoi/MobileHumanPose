@@ -1,0 +1,47 @@
+{
+  "images": [
+    {
+      "id": 5000005,
+      "file_name": "s_5_act_01_subact_01_ca_01/s_5_act_01_subact_01_ca_01_000001.jpg",
+      "width": 1000,
+      "height": 1002,
+      "subject": 5,
+      "action_name": "Directions",
+      "action_idx": 1,
+      "subaction_idx": 1,
+      "cam_idx": 1,
+      "frame_idx": 0
+    }
+  ],
+  "annotations": [
+    {
+      "id": 5000005,
+      "image_id": 5000005,
+      "keypoints_vis": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "bbox": [
+        300,
+        200,
+        330,
+        420
+      ]
+    }
+  ]
+}

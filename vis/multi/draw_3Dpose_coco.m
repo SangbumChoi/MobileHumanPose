@@ -1,5 +1,9 @@
 function draw_3Dpose_coco()
- 
+% 3D visualization for COCO. Run from vis/multi (or vis/single).
+% Expects: ../coco_img_name.txt (from python scripts/export_coco_img_names.py),
+%          preds_2d_kpt_coco.mat, preds_3d_kpt_coco.mat in current dir.
+% Set root_path (input images) and save_path (output) below.
+    
     root_path = '/mnt/hdd1/Data/Human_pose_estimation/COCO/2017/val2017/';
     save_path = './vis/';
     num_joint =  17;

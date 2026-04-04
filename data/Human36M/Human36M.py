@@ -1,20 +1,22 @@
-import os
-import os.path as osp
-from pycocotools.coco import COCO
-import numpy as np
-from config import cfg
-from utils.pose_utils import world2cam, cam2pixel, pixel2cam, rigid_align, process_bbox
-import cv2
-import random
 import json
-from utils.vis import vis_keypoints, vis_3d_skeleton
+import os.path as osp
+import random
+
+import cv2
+import numpy as np
+from pycocotools.coco import COCO
+
+from common.utils.pose_utils import cam2pixel, pixel2cam, process_bbox, rigid_align, world2cam
+from common.utils.vis import vis_keypoints
+from src.config import cfg
+
 
 class Human36M:
     def __init__(self, data_split):
         self.data_split = data_split
-        self.img_dir = osp.join('/', 'data', 'Human36M', 'images')
-        self.annot_path = osp.join('/', 'data', 'Human36M', 'annotations')
-        self.human_bbox_root_dir = osp.join('/', 'data', 'Human36M', 'bbox_root', 'bbox_root_human36m_output.json')
+        self.img_dir = osp.join(cfg.root_dir, 'data', 'Human36M', 'images')
+        self.annot_path = osp.join(cfg.root_dir, 'data', 'Human36M', 'annotations')
+        self.human_bbox_root_dir = osp.join(cfg.root_dir, 'data', 'Human36M', 'bbox_root', 'bbox_root_human36m_output.json')
         self.joint_num = 18 # original:17, but manually added 'Thorax'
         self.joints_name = ('Pelvis', 'R_Hip', 'R_Knee', 'R_Ankle', 'L_Hip', 'L_Knee', 'L_Ankle', 'Torso', 'Neck', 'Nose', 'Head', 'L_Shoulder', 'L_Elbow', 'L_Wrist', 'R_Shoulder', 'R_Elbow', 'R_Wrist', 'Thorax')
         self.flip_pairs = ( (1, 4), (2, 5), (3, 6), (14, 11), (15, 12), (16, 13) )
@@ -52,7 +54,7 @@ class Human36M:
             assert 0, print("Unknown subset")
 
         return subject
-    
+
     def add_thorax(self, joint_coord):
         thorax = (joint_coord[self.lshoulder_idx, :] + joint_coord[self.rshoulder_idx, :]) * 0.5
         thorax = thorax.reshape((1, 3))
@@ -64,7 +66,7 @@ class Human36M:
 
         subject_list = self.get_subject()
         sampling_ratio = self.get_subsampling_ratio()
-        
+
         # aggregate annotations from each subject
         db = COCO()
         cameras = {}
@@ -86,7 +88,7 @@ class Human36M:
             with open(osp.join(self.annot_path, 'Human36M_subject' + str(subject) + '_joint_3d.json'),'r') as f:
                 joints[str(subject)] = json.load(f)
         db.createIndex()
-       
+
         if self.data_split == 'test' and not cfg.use_gt_info:
             print("Get bounding box and root from " + self.human_bbox_root_dir)
             bbox_root_result = {}
@@ -104,9 +106,9 @@ class Human36M:
             img = db.loadImgs(image_id)[0]
             img_path = osp.join(self.img_dir, img['file_name'])
             img_width, img_height = img['width'], img['height']
-           
+
             # check subject and frame_idx
-            subject = img['subject']; frame_idx = img['frame_idx'];
+            subject = img['subject']; frame_idx = img['frame_idx']
             if subject not in subject_list:
                 continue
             if frame_idx % sampling_ratio != 0:
@@ -116,16 +118,16 @@ class Human36M:
             cam_idx = img['cam_idx']
             cam_param = cameras[str(subject)][str(cam_idx)]
             R,t,f,c = np.array(cam_param['R'], dtype=np.float32), np.array(cam_param['t'], dtype=np.float32), np.array(cam_param['f'], dtype=np.float32), np.array(cam_param['c'], dtype=np.float32)
-                
+
             # project world coordinate to cam, image coordinate space
-            action_idx = img['action_idx']; subaction_idx = img['subaction_idx']; frame_idx = img['frame_idx'];
+            action_idx = img['action_idx']; subaction_idx = img['subaction_idx']; frame_idx = img['frame_idx']
             joint_world = np.array(joints[str(subject)][str(action_idx)][str(subaction_idx)][str(frame_idx)], dtype=np.float32)
             joint_world = self.add_thorax(joint_world)
             joint_cam = world2cam(joint_world, R, t)
             joint_img = cam2pixel(joint_cam, f, c)
             joint_img[:,2] = joint_img[:,2] - joint_cam[self.root_idx,2]
             joint_vis = np.ones((self.joint_num,1))
-            
+
             if self.data_split == 'test' and not cfg.use_gt_info:
                 bbox = bbox_root_result[str(image_id)]['bbox'] # bbox should be aspect ratio preserved-extended. It is done in RootNet.
                 root_cam = bbox_root_result[str(image_id)]['root']
@@ -133,7 +135,7 @@ class Human36M:
                 bbox = process_bbox(np.array(ann['bbox']), img_width, img_height)
                 if bbox is None: continue
                 root_cam = joint_cam[self.root_idx]
-               
+
             data.append({
                 'img_path': img_path,
                 'img_id': image_id,
@@ -144,16 +146,16 @@ class Human36M:
                 'root_cam': root_cam, # [X, Y, Z] in camera coordinate
                 'f': f,
                 'c': c})
-           
+
         return data
 
     def evaluate(self, preds, result_dir):
-        
+
         print('Evaluation start...')
         gts = self.data
         assert len(gts) == len(preds)
         sample_num = len(gts)
-        
+
         pred_save = []
         error = np.zeros((sample_num, self.joint_num-1)) # joint error
         error_action = [ [] for _ in range(len(self.action_name)) ] # error for each sequence
@@ -166,7 +168,7 @@ class Human36M:
             gt_3d_root = gt['root_cam']
             gt_3d_kpt = gt['joint_cam']
             gt_vis = gt['joint_vis']
-            
+
             # restore coordinates to original space
             pred_2d_kpt = preds[n].copy()
             pred_2d_kpt[:,0] = pred_2d_kpt[:,0] / cfg.output_shape[1] * bbox[2] + bbox[0]
@@ -186,19 +188,19 @@ class Human36M:
 
             # back project to camera coordinate system
             pred_3d_kpt = pixel2cam(pred_2d_kpt, f, c)
- 
+
             # root joint alignment
             pred_3d_kpt = pred_3d_kpt - pred_3d_kpt[self.root_idx]
             gt_3d_kpt  = gt_3d_kpt - gt_3d_kpt[self.root_idx]
-           
+
             if self.protocol == 1:
                 # rigid alignment for PA MPJPE (protocol #1)
                 pred_3d_kpt = rigid_align(pred_3d_kpt, gt_3d_kpt)
-            
+
             # exclude thorax
             pred_3d_kpt = np.take(pred_3d_kpt, self.eval_joint, axis=0)
             gt_3d_kpt = np.take(gt_3d_kpt, self.eval_joint, axis=0)
-           
+
             # error calculate
             error[n] = np.sqrt(np.sum((pred_3d_kpt - gt_3d_kpt)**2,1))
             img_name = gt['img_path']

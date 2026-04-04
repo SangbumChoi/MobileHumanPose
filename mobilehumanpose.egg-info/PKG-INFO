@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: mobilehumanpose
+Version: 0.1.0
+Summary: MobileHumanPose
+Requires-Python: >=3.7
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: tqdm
+Requires-Dist: torch
+Requires-Dist: torchvision
+Requires-Dist: torchsummary
+Requires-Dist: opencv-python
+Requires-Dist: matplotlib
+Requires-Dist: pycocotools
+Requires-Dist: scipy
+Requires-Dist: gradio>=4.0.0
+Dynamic: license-file

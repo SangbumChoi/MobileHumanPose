@@ -1,11 +1,28 @@
+# env (API keys)
+.env
+
 # virtualenv setting
 venv_3DMPPE
 
 # output result
 output
+*.zip
+demo/models/
+demo/webgpu/models/
+data/data
+data/MuCo/muco-3dhp/
+data/MuPoTS/mupots-3d-eval/
+data/MPII/mpii_human_pose_v1_u12_2/
+data/MSCOCO/images
+data/MSCOCO/annotations
+data/MSCOCO/bbox_root
 
 # demo output
 demo/*.pth.tar
+*.pt
+
+# assets output (keep folder, ignore generated videos)
+assets/videos/*.mp4
 
 # byte-compiled
 /__pycache_/

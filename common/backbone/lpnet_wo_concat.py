@@ -1,6 +1,7 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
 from torchsummary import summary
+
 
 def _make_divisible(v, divisor, min_value=None):
     """
