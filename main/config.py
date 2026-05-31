@@ -59,6 +59,27 @@ class Config:
     gpu_ids = '0'
     num_gpus = 1
     continue_train = False
+    use_cuda = False
+
+    def set_args(self, gpu_ids='0', continue_train=False):
+        """Configure GPU ids (e.g. '0', '0,1', or '0-1') and resume flag.
+
+        Falls back gracefully to CPU when CUDA is unavailable so that
+        train.py / test.py / demo.py run unchanged on a CPU-only box.
+        """
+        import torch
+        self.gpu_ids = str(gpu_ids)
+        if '-' in self.gpu_ids:
+            g = self.gpu_ids.split('-')
+            self.gpu_ids = ','.join(map(str, range(int(g[0]), int(g[1]) + 1)))
+        self.continue_train = continue_train
+        self.use_cuda = torch.cuda.is_available()
+        if self.use_cuda:
+            os.environ["CUDA_VISIBLE_DEVICES"] = self.gpu_ids
+            self.num_gpus = len(self.gpu_ids.split(','))
+        else:
+            self.num_gpus = 1
+        print('>>> Using {} GPU(s); cuda={}'.format(self.num_gpus, self.use_cuda))
 
     if '-' in gpu_ids:
         gpus = gpu_ids.split('-')

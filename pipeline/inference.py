@@ -35,7 +35,9 @@ def load_pose_model(ckpt_path=None):
     model = build_model(JOINT_NUM, init_weights=False)
     if osp.exists(ckpt_path):
         ckpt = torch.load(ckpt_path, map_location="cpu")
-        model.load_state_dict(ckpt["state_dict"])
+        state = ckpt.get("network", ckpt.get("state_dict"))
+        state = {k[len("module."):] if k.startswith("module.") else k: v for k, v in state.items()}
+        model.load_state_dict(state)
         log.info("Loaded trained model from %s", ckpt_path)
     else:
         model.init_weights()

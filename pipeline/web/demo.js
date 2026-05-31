@@ -3,13 +3,14 @@
 // coords (already inside the graph) -> draw COCO-17 skeleton.
 
 const INPUT = 256, GRID = 32;                 // model input / output-grid size
+const NJOINTS = 19;                           // 17 COCO + Thorax + Pelvis
 const MEAN = [0.485, 0.456, 0.406];
 const STD = [0.229, 0.224, 0.225];
 
-// 0-indexed COCO-17 skeleton edges.
+// 0-indexed skeleton edges (repo MSCOCO 19-joint convention).
 const SKELETON = [
-  [15,13],[13,11],[16,14],[14,12],[11,12],[5,11],[6,12],[5,6],[5,7],
-  [6,8],[7,9],[8,10],[1,2],[0,1],[0,2],[1,3],[2,4],[3,5],[4,6]
+  [1,2],[0,1],[0,2],[2,4],[1,3],[6,8],[8,10],[5,7],[7,9],
+  [12,14],[14,16],[11,13],[13,15],[5,6],[11,12],[17,5],[17,6],[18,11],[18,12]
 ];
 
 const statusEl = document.getElementById("status");
@@ -70,7 +71,7 @@ function drawPose(coords) {
   ctx.drawImage(inCanvas, 0, 0);
   const s = INPUT / GRID;                       // output grid -> input pixels
   const pts = [];
-  for (let j = 0; j < 17; j++) pts.push([coords[j * 3] * s, coords[j * 3 + 1] * s]);
+  for (let j = 0; j < NJOINTS; j++) pts.push([coords[j * 3] * s, coords[j * 3 + 1] * s]);
   ctx.lineWidth = 3; ctx.strokeStyle = "#00ff66";
   for (const [a, b] of SKELETON) {
     ctx.beginPath(); ctx.moveTo(pts[a][0], pts[a][1]);

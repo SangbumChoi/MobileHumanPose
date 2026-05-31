@@ -17,11 +17,20 @@ import torch
 import torchvision
 from torchvision.transforms.functional import to_tensor
 
-from common import (CURATED_DIR, ANNOTATED_DIR, JOINTS_NAME, SKELETON,
-                    ensure_dir, save_json, get_logger)
+from common import (CURATED_DIR, ANNOTATED_DIR, ensure_dir, save_json, get_logger)
 
 log = get_logger("annotate")
 COCO_PERSON = 1
+
+# Raw COCO-17 keypoint names + skeleton (what this stage emits, independent of
+# the 19-joint convention the model is later trained on).
+COCO17_NAMES = ("nose", "left_eye", "right_eye", "left_ear", "right_ear",
+                "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
+                "left_wrist", "right_wrist", "left_hip", "right_hip",
+                "left_knee", "right_knee", "left_ankle", "right_ankle")
+COCO17_SKELETON = ((15, 13), (13, 11), (16, 14), (14, 12), (11, 12), (5, 11),
+                   (6, 12), (5, 6), (5, 7), (6, 8), (7, 9), (8, 10), (1, 2),
+                   (0, 1), (0, 2), (1, 3), (2, 4), (3, 5), (4, 6))
 
 
 def _load_kp_model():
@@ -32,7 +41,7 @@ def _load_kp_model():
 
 
 def _draw(img_bgr, kpts, kp_thresh=2.0):
-    for (a, b) in SKELETON:
+    for (a, b) in COCO17_SKELETON:
         if kpts[a, 2] > 0 and kpts[b, 2] > 0:
             cv2.line(img_bgr, tuple(kpts[a, :2].astype(int)), tuple(kpts[b, :2].astype(int)),
                      (0, 255, 0), 2)
@@ -98,8 +107,8 @@ def annotate(in_dir=CURATED_DIR, out_dir=ANNOTATED_DIR, det_score=0.8,
         "images": images,
         "annotations": annotations,
         "categories": [{"id": 1, "name": "person", "supercategory": "person",
-                        "keypoints": list(JOINTS_NAME),
-                        "skeleton": [[a + 1, b + 1] for (a, b) in SKELETON]}],
+                        "keypoints": list(COCO17_NAMES),
+                        "skeleton": [[a + 1, b + 1] for (a, b) in COCO17_SKELETON]}],
     }
     save_json(coco, osp.join(out_dir, "annotations.json"))
     log.info("Annotated %d images with %d person instances", len(images), len(annotations))

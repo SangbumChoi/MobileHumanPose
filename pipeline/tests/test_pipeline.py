@@ -41,9 +41,9 @@ def test_3_annotate():
     n = stage03_annotate.annotate()
     coco = load_json(osp.join(ANNOTATED_DIR, "annotations.json"))
     assert n == len(coco["annotations"]) >= 1
-    # COCO-17 keypoints: 17 joints x (x, y, v) = 51 values per instance.
-    assert len(coco["annotations"][0]["keypoints"]) == JOINT_NUM * 3
-    assert coco["categories"][0]["keypoints"] == list(common.JOINTS_NAME)
+    # Raw annotations are COCO-17: 17 joints x (x, y, v) = 51 values per instance.
+    assert len(coco["annotations"][0]["keypoints"]) == 17 * 3
+    assert len(coco["categories"][0]["keypoints"]) == 17
 
 
 def test_4_embed_curate():
@@ -56,13 +56,19 @@ def test_4_embed_curate():
     assert osp.exists(osp.join(BALANCED_DIR, "distribution.png"))
 
 
-def test_5_train():
+def test_5_train_via_repo_trainer():
+    """Stage 5 must train through the ORIGINAL repo Trainer + CrawlPipeline."""
     import stage05_train
     out = stage05_train.train(epochs=EPOCHS, batch_size=4)
     assert osp.exists(out)
     log = load_json(osp.join(MODELS_DIR, "train_log.json"))
     assert len(log["loss_history"]) == EPOCHS
     assert all(np.isfinite(log["loss_history"])), "loss diverged to nan/inf"
+    assert log["joint_num"] == JOINT_NUM == 19
+    # the repo Trainer.save_model wrote a snapshot in the canonical repo format
+    import glob
+    snaps = glob.glob(osp.join(common.REPO_DIR, "output", "model_dump", "snapshot_*.pth.tar"))
+    assert snaps, "repo-format snapshot was not written by base.Trainer"
 
 
 def test_6_model_3d_keypoint_output():
@@ -71,7 +77,7 @@ def test_6_model_3d_keypoint_output():
     model = build_model(JOINT_NUM, init_weights=False)
     ckpt = osp.join(MODELS_DIR, "pose_model.pth")
     if osp.exists(ckpt):
-        model.load_state_dict(torch.load(ckpt, map_location="cpu")["state_dict"])
+        model.load_state_dict(torch.load(ckpt, map_location="cpu")["network"])
     model.eval()
     with torch.no_grad():
         coords = soft_argmax(model(torch.randn(2, 3, 256, 256)), JOINT_NUM)

@@ -17,7 +17,7 @@ crawl ──▶ curate ──▶ annotate ──▶ embed-curate ──▶ train
 | 2. Curate | `stage02_curate.py` | Dedup (pHash) + quality + person-presence filter | Faster-RCNN MobileNetV3 |
 | 3. Annotate | `stage03_annotate.py` | Auto-label COCO-17 keypoints → `annotations.json` | KeypointRCNN-R50 |
 | 4. Embed-curate | `stage04_embed_curate.py` | Embed crops → cluster → rebalance dataset distribution | ResNet-50 (ImageNet) |
-| 5. Train | `stage05_train.py` | Train `LpNetSkiConcat` (2D, soft-argmax + L1 loss) | — (trains from scratch) |
+| 5. Train | `stage05_train.py` | Trains via the **original repo `base.Trainer`** on the `CrawlPipeline` dataset (see [INTEGRATION.md](INTEGRATION.md)) | — (trains from scratch) |
 | 6a. Deploy (server) | `stage06_demo.py` | Gradio app: detect + pose, multi-person | Faster-RCNN + trained LpNet |
 | 6b. Deploy (static) | `export_onnx.py` + `web/` | ONNX + ONNX-Runtime-Web in-browser demo | trained LpNet (ONNX) |
 
@@ -58,6 +58,16 @@ python export_onnx.py             # writes web/pose_model.onnx
 06_demo/       inference test outputs
 web/           index.html + demo.js + pose_model.onnx  (static demo, committed)
 ```
+
+## Integration with the original repo
+
+Stage 5 does **not** reimplement training — it drives the repo's own
+`common/base.py::Trainer` via a new `data/CrawlPipeline` dataset (a 2D COCO
+loader modeled on `data/MSCOCO`). Several original-repo bugs that prevented it
+from running on CPU were fixed in the process (`cfg.set_args`, `soft_argmax`
+device, `Tester/Transformer` `.cuda()`, `train.py` arg parsing, a `ToTensor`
+normalization bug). Full details: **[INTEGRATION.md](INTEGRATION.md)**. The
+original commands now also run on CPU, e.g. `python main/train.py --backbone LPSKI`.
 
 ## Notes & honest limitations
 

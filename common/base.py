@@ -15,6 +15,19 @@ from model import get_pose_net
 from dataset import DatasetLoader
 from multiple_datasets import MultipleDatasets
 
+
+def _match_state_dict(model, state_dict):
+    """Add/strip a leading 'module.' so a checkpoint loads whether or not the
+    target model is wrapped in DataParallel (e.g. GPU-trained ckpt on CPU)."""
+    wants_module = list(model.state_dict().keys())[0].startswith('module.')
+    has_module = list(state_dict.keys())[0].startswith('module.')
+    if wants_module and not has_module:
+        return {'module.' + k: v for k, v in state_dict.items()}
+    if has_module and not wants_module:
+        return {k[len('module.'):]: v for k, v in state_dict.items()}
+    return state_dict
+
+
 # dynamic dataset import
 for i in range(len(cfg.trainset_3d)):
     exec('from ' + cfg.trainset_3d[i] + ' import ' + cfg.trainset_3d[i])
@@ -53,9 +66,10 @@ class Base(object):
     def load_model(self, model, optimizer):
         model_file_list = glob.glob(osp.join(cfg.model_dir,'*.pth.tar'))
         cur_epoch = max([int(file_name[file_name.find('snapshot_') + 9 : file_name.find('.pth.tar')]) for file_name in model_file_list])
-        ckpt = torch.load(osp.join(cfg.model_dir, 'snapshot_' + str(cur_epoch) + '.pth.tar')) 
+        map_location = None if torch.cuda.is_available() else 'cpu'
+        ckpt = torch.load(osp.join(cfg.model_dir, 'snapshot_' + str(cur_epoch) + '.pth.tar'), map_location=map_location)
         start_epoch = ckpt['epoch'] + 1
-        model.load_state_dict(ckpt['network'])
+        model.load_state_dict(_match_state_dict(model, ckpt['network']))
         optimizer.load_state_dict(ckpt['optimizer'])
 
         return start_epoch, model, optimizer
@@ -170,9 +184,12 @@ class Tester(Base):
         # prepare network
         # self.logger.info("Creating graph...")
         model = get_pose_net(self.backbone, False, self.joint_num)
-        model = DataParallel(model).cuda()
-        ckpt = torch.load(model_path)
-        model.load_state_dict(ckpt['network'])
+        if torch.cuda.is_available():
+            model = DataParallel(model).cuda()
+            ckpt = torch.load(model_path)
+        else:
+            ckpt = torch.load(model_path, map_location='cpu')
+        model.load_state_dict(_match_state_dict(model, ckpt['network']))
         model.eval()
 
         self.model = model
@@ -193,8 +210,12 @@ class Transformer(Base):
         # prepare network
         self.logger.info("Creating graph and optimizer...")
         model = get_pose_net(self.backbone, False, self.jointnum)
-        model = DataParallel(model).cuda()
-        model.load_state_dict(torch.load(self.modelpath)['network'])
-        single_pytorch_model = model.module
+        if torch.cuda.is_available():
+            model = DataParallel(model).cuda()
+            model.load_state_dict(_match_state_dict(model, torch.load(self.modelpath)['network']))
+            single_pytorch_model = model.module
+        else:
+            model.load_state_dict(_match_state_dict(model, torch.load(self.modelpath, map_location='cpu')['network']))
+            single_pytorch_model = model
         single_pytorch_model.eval()
         self.model = single_pytorch_model

@@ -100,8 +100,10 @@ class DatasetLoader(Dataset):
         joint_img[:, 2] = joint_img[:, 2] * cfg.depth_dim
         
         if self.is_train:
-            img_patch = self.transform(img_patch)
-            
+            # cast to uint8 so torchvision ToTensor divides by 255 before
+            # Normalize (it does NOT rescale float arrays -> wrong stats).
+            img_patch = self.transform(img_patch.astype(np.uint8))
+
             if self.ref_joints_name is not None:
                 joint_img = transform_joint_to_other_db(joint_img, self.joints_name, self.ref_joints_name) 
                 joint_vis = transform_joint_to_other_db(joint_vis, self.joints_name, self.ref_joints_name)
@@ -112,7 +114,7 @@ class DatasetLoader(Dataset):
 
             return img_patch, joint_img, joint_vis, joints_have_depth
         else:
-            img_patch = self.transform(img_patch)
+            img_patch = self.transform(img_patch.astype(np.uint8))
             return img_patch
 
     def __len__(self):

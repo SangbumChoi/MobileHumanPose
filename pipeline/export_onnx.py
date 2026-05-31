@@ -33,7 +33,10 @@ def export(ckpt_path=None, out_path=None, web_dir=None):
     out_path = out_path or osp.join(MODELS_DIR, "pose_model.onnx")
     model = build_model(JOINT_NUM, init_weights=False)
     if osp.exists(ckpt_path):
-        model.load_state_dict(torch.load(ckpt_path, map_location="cpu")["state_dict"])
+        ckpt = torch.load(ckpt_path, map_location="cpu")
+        state = ckpt.get("network", ckpt.get("state_dict"))
+        state = {k[len("module."):] if k.startswith("module.") else k: v for k, v in state.items()}
+        model.load_state_dict(state)
     else:
         model.init_weights()
         log.info("No checkpoint; exporting random-init model.")

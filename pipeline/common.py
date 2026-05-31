@@ -56,22 +56,24 @@ def get_logger(name):
 
 
 # ---------------------------------------------------------------------------
-# Keypoint definition (COCO-17 -- this is what the pretrained auto-annotator
-# produces, so we use it consistently across annotate / train / demo).
+# Keypoint definition. We use the repo's canonical 19-joint COCO convention
+# (17 COCO joints + Thorax + Pelvis) -- identical to data/MSCOCO 'train' and to
+# data/CrawlPipeline -- so the model trained by the original repo Trainer is
+# consumed unchanged by inference / ONNX / demo.
 # ---------------------------------------------------------------------------
 JOINTS_NAME = (
-    "nose", "left_eye", "right_eye", "left_ear", "right_ear",
-    "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
-    "left_wrist", "right_wrist", "left_hip", "right_hip",
-    "left_knee", "right_knee", "left_ankle", "right_ankle",
+    "Nose", "L_Eye", "R_Eye", "L_Ear", "R_Ear",
+    "L_Shoulder", "R_Shoulder", "L_Elbow", "R_Elbow",
+    "L_Wrist", "R_Wrist", "L_Hip", "R_Hip",
+    "L_Knee", "R_Knee", "L_Ankle", "R_Ankle", "Thorax", "Pelvis",
 )
-JOINT_NUM = len(JOINTS_NAME)  # 17
+JOINT_NUM = len(JOINTS_NAME)  # 19
 
-# 0-indexed COCO skeleton edges.
+# 0-indexed skeleton edges (matches data/MSCOCO 'train').
 SKELETON = (
-    (15, 13), (13, 11), (16, 14), (14, 12), (11, 12), (5, 11), (6, 12),
-    (5, 6), (5, 7), (6, 8), (7, 9), (8, 10), (1, 2), (0, 1), (0, 2),
-    (1, 3), (2, 4), (3, 5), (4, 6),
+    (1, 2), (0, 1), (0, 2), (2, 4), (1, 3), (6, 8), (8, 10), (5, 7), (7, 9),
+    (12, 14), (14, 16), (11, 13), (13, 15), (5, 6), (11, 12),
+    (17, 5), (17, 6), (18, 11), (18, 12),
 )
 FLIP_PAIRS = ((1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11, 12), (13, 14), (15, 16))
 
