@@ -1,0 +1,51 @@
+name: Pipeline CI
+
+# Small end-to-end smoke test of the MobileHumanPose pipeline:
+# crawl ~10 images -> curate -> annotate -> embed-curate -> train (2 epochs)
+# -> 3D-keypoint model check -> ONNX export/parity -> inference.
+# Each stage is an individual pytest case, so the CI summary shows a
+# pass/fail per stage.
+
+on:
+  push:
+    branches: [master, "claude/**"]
+    paths:
+      - "pipeline/**"
+      - ".github/workflows/pipeline-ci.yml"
+  pull_request:
+    paths:
+      - "pipeline/**"
+      - ".github/workflows/pipeline-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('pipeline/requirements.txt') }}
+
+      - name: Cache pretrained weights (torch hub)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/torch
+          key: torchhub-pipeline-v1
+
+      - name: Install dependencies (CPU)
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -r pipeline/requirements.txt pytest
+
+      - name: Run pipeline smoke tests
+        run: pytest pipeline/tests -v -p no:cacheprovider
