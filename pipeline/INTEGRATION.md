@@ -61,7 +61,40 @@ this dataset:
 `pipeline/work/05_models/pose_model.pth` (backbone weights + meta) consumed by
 the demo / ONNX export.
 
-## 4. What stayed pipeline-specific (and why)
+## 4. Mock datasets for every format (2D + 3D)
+
+`pipeline/make_mock_datasets.py` generates a small but **real** dataset in each
+repo format so every loader runs out-of-the-box (no multi-GB downloads):
+
+| Dataset | Type | Joints | On-disk format produced |
+|---------|------|--------|--------------------------|
+| MSCOCO  | 2D | 17→19 | `person_keypoints_train2017.json` + `images/train2017/` |
+| MPII    | 2D | 16 | `annotations/train.json` + `images/` |
+| Human3.6M | 3D | 17→18 | `Human36M_subject{1,5,6,7,8}_{data,camera,joint_3d}.json` + images |
+| MuCo    | 3D | 21 | `MuCo-3DHP.json` (per-img `f,c`; per-ann `keypoints_cam/img`) |
+| MuPoTS  | 3D test | 17→21 | `data/MuPoTS-3D.json` (per-img `intrinsic`) + `MultiPersonTestSet/` |
+
+- **Real images** come from the committed, license-clean fallback assets.
+- **2D keypoints** are real KeypointRCNN detections, remapped to each dataset's
+  joint convention (deriving Pelvis/Thorax/Neck/Spine/Head_top, mapping
+  hands→wrists and toes→ankles where a dataset has joints COCO lacks).
+- **3D is camera-consistent**: with focal `f` and principal point `c`, each
+  joint gets a plausible root-relative depth (anatomical template) and X,Y are
+  back-projected so the 3D skeleton **reprojects exactly onto the real 2D
+  detection** — a genuine "3D human in the image", not random noise.
+
+Each loader's hardcoded research path now falls back to its repo-local mock
+directory when the absolute path is absent (real-data use is unchanged).
+`pipeline/verify_datasets.py` (and `tests/test_datasets.py`) load all five
+through the repo's `DatasetLoader`, run a **mixed 2D+3D training step via the
+original `Trainer`**, and a test-set pass via `Tester`.
+
+```bash
+python pipeline/make_mock_datasets.py   # (re)generate the mock data
+python pipeline/verify_datasets.py      # load + train-step check (2D and 3D)
+```
+
+## 5. What stayed pipeline-specific (and why)
 
 - **Stages 1-4** (crawl / curate / annotate / embed-curate) have no equivalent
   in the original repo — they are genuinely new and feed COCO-format data the

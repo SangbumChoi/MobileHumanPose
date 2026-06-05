@@ -1,0 +1,10 @@
+{
+  "note": "Small real-image mock datasets for each format. 2D from KeypointRCNN; 3D camera-consistently lifted.",
+  "instances_per_dataset": {
+    "MSCOCO (2D)": 27,
+    "MPII (2D)": 27,
+    "Human36M (3D)": 5,
+    "MuCo (3D)": 27,
+    "MuPoTS (3D)": 27
+  }
+}

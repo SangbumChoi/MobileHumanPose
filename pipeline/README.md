@@ -59,6 +59,20 @@ python export_onnx.py             # writes web/pose_model.onnx
 web/           index.html + demo.js + pose_model.onnx  (static demo, committed)
 ```
 
+## Mock datasets for every repo format (2D + 3D)
+
+`make_mock_datasets.py` writes a small **real** dataset in each repo format
+(MSCOCO, MPII, Human3.6M, MuCo, MuPoTS) — real person images + real KeypointRCNN
+keypoints, with camera-consistent 3D for the 3D sets — so every loader runs
+without multi-GB downloads. `verify_datasets.py` loads all five through the
+repo's own `DatasetLoader` and runs a mixed 2D+3D `Trainer` step. See
+[INTEGRATION.md](INTEGRATION.md) §4.
+
+```bash
+python pipeline/make_mock_datasets.py   # generate data/<Dataset>/...
+python pipeline/verify_datasets.py      # 2D + 3D load/train checks
+```
+
 ## Integration with the original repo
 
 Stage 5 does **not** reimplement training — it drives the repo's own

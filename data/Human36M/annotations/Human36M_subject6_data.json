@@ -1,0 +1,1 @@
+{"images": [{"id": 2, "file_name": "s_06_act_02_subact_01_ca_01/s_06_act_02_subact_01_ca_01_000000.jpg", "width": 236, "height": 640, "subject": 6, "action_name": "Directions", "action_idx": 2, "subaction_idx": 1, "cam_idx": 1, "frame_idx": 0}], "annotations": [{"id": 2, "image_id": 2, "bbox": [17.2034912109375, 5.666934490203857, 212.25648498535156, 628.2769775390625]}]}
