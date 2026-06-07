@@ -1,0 +1,20 @@
+# MobileHumanPose end-to-end pipeline (CPU-friendly).
+# Install torch/torchvision first, e.g.:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+numpy
+opencv-python-headless
+pillow
+imagehash
+scikit-learn
+matplotlib
+tqdm
+requests
+gradio
+onnx
+onnxscript
+onnxruntime
+torchsummary
+pycocotools
+scipy

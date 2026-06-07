@@ -1,0 +1,89 @@
+{
+  "source": "Wikimedia Commons + bundled fallback",
+  "images": [
+    {
+      "file": "wiki_00.jpg",
+      "title": "File:Ava Lauren, full body.JPG",
+      "license": "CC BY-SA 2.5",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Ava_Lauren%2C_full_body.JPG"
+    },
+    {
+      "file": "wiki_01.jpg",
+      "title": "File:Bodi Tribe, Omo Valley (11248906384) (crop full body wide).jpg",
+      "license": "CC BY-SA 2.0",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Bodi_Tribe%2C_Omo_Valley_%2811248906384%29_%28crop_full_body_wide%29.jpg/960px-Bodi_Tribe%2C_Omo_Valley_%2811248906384%29_%28crop_full_body_wide%29.jpg"
+    },
+    {
+      "file": "wiki_02.jpg",
+      "title": "File:Bodi Tribe, Omo Valley (crop full body narrow).jpg",
+      "license": "CC BY-SA 2.0",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Bodi_Tribe%2C_Omo_Valley_%28crop_full_body_narrow%29.jpg/960px-Bodi_Tribe%2C_Omo_Valley_%28crop_full_body_narrow%29.jpg"
+    },
+    {
+      "file": "wiki_03.jpg",
+      "title": "File:Human body \u2013 Caisa.jpg",
+      "license": "CC BY-SA 4.0",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Human_body_%E2%80%93_Caisa.jpg/960px-Human_body_%E2%80%93_Caisa.jpg"
+    },
+    {
+      "file": "wiki_04.jpg",
+      "title": "File:President Barack Obama with full cabinet 09-10-09.jpg",
+      "license": "Public domain",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/President_Barack_Obama_with_full_cabinet_09-10-09.jpg/960px-President_Barack_Obama_with_full_cabinet_09-10-09.jpg"
+    },
+    {
+      "file": "wiki_05.jpg",
+      "title": "File:Red Ao dai (crop full body).JPG",
+      "license": "Public domain",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Red_Ao_dai_%28crop_full_body%29.JPG"
+    },
+    {
+      "file": "wiki_06.jpg",
+      "title": "File:Algerian athlete 33.jpg",
+      "license": "CC BY-SA 4.0",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Algerian_athlete_33.jpg/960px-Algerian_athlete_33.jpg"
+    },
+    {
+      "file": "wiki_07.jpg",
+      "title": "File:Amos Kipruto (athletics competitor).jpg",
+      "license": "CC BY 2.0",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Amos_Kipruto_%28athletics_competitor%29.jpg"
+    },
+    {
+      "file": "wiki_08.jpg",
+      "title": "File:Canadian sprinter Barbara Howard running in 1937.png",
+      "license": "Public domain",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Canadian_sprinter_Barbara_Howard_running_in_1937.png"
+    },
+    {
+      "file": "wiki_09.jpg",
+      "title": "File:Concentratie athlete marathon Rotterdam.JPG",
+      "license": "CC BY-SA 3.0",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Concentratie_athlete_marathon_Rotterdam.JPG/960px-Concentratie_athlete_marathon_Rotterdam.JPG"
+    },
+    {
+      "file": "wiki_10.jpg",
+      "title": "File:Descriptive Zoopraxography Athlete, Running High Jump Animated.gif",
+      "license": "Public domain",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Descriptive_Zoopraxography_Athlete%2C_Running_High_Jump_Animated.gif/960px-Descriptive_Zoopraxography_Athlete%2C_Running_High_Jump_Animated.gif"
+    },
+    {
+      "file": "wiki_11.jpg",
+      "title": "File:Descriptive Zoopraxography Athlete, Running Long Jump Animated 13.gif",
+      "license": "Public domain",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Descriptive_Zoopraxography_Athlete%2C_Running_Long_Jump_Animated_13.gif/960px-Descriptive_Zoopraxography_Athlete%2C_Running_Long_Jump_Animated_13.gif"
+    },
+    {
+      "file": "wiki_12.jpg",
+      "title": "File:Descriptive Zoopraxography Athlete, Running Long Jump Animated 14.gif",
+      "license": "Public domain",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Descriptive_Zoopraxography_Athlete%2C_Running_Long_Jump_Animated_14.gif/960px-Descriptive_Zoopraxography_Athlete%2C_Running_Long_Jump_Animated_14.gif"
+    },
+    {
+      "file": "wiki_13.jpg",
+      "title": "File:FAMU athlete Robert Hayes practices running on the track.jpg",
+      "license": "Public domain",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/6/68/FAMU_athlete_Robert_Hayes_practices_running_on_the_track.jpg"
+    }
+  ]
+}

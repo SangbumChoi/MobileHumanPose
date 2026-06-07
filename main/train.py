@@ -4,17 +4,31 @@ from tqdm import tqdm
 import os.path as osp
 import numpy as np
 import torch
-from base import Trainer
-from utils.pose_utils import flip
 import torch.backends.cudnn as cudnn
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gpu', type=str, dest='gpu_ids', default='0',
+                        help="e.g. '0', '0,1' or '0-1' (ignored on CPU-only hosts)")
+    parser.add_argument('--backbone', type=str, default=None,
+                        help='LPRES | LPSKI | LPWO (defaults to config.py)')
+    parser.add_argument('--continue', dest='continue_train', action='store_true')
+    return parser.parse_args()
+
+
 def main():
-    
+
     # argument parse and create log
+    args = parse_args()
+    cfg.set_args(args.gpu_ids, continue_train=args.continue_train)
+    if args.backbone is not None:
+        cfg.backbone = args.backbone
     cudnn.fastest = True
     cudnn.benchmark = True
 
+    # import Trainer only after cfg is configured (it triggers dataset imports)
+    from base import Trainer
     trainer = Trainer(cfg)
     trainer._make_batch_generator()
     trainer._make_model()

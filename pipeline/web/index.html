@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MobileHumanPose &middot; In-Browser Demo</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         max-width: 880px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+  h1 { margin-bottom: .2rem; }
+  .sub { color: #888; margin-top: 0; }
+  canvas { border: 1px solid #ccc; border-radius: 8px; max-width: 100%; background: #111; }
+  .row { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start; }
+  #status { font-family: ui-monospace, monospace; padding: .5rem .75rem; border-radius: 6px;
+            background: rgba(127,127,127,.12); display: inline-block; }
+  .note { font-size: .9rem; color: #888; }
+  button, input[type=file] { font-size: 1rem; }
+  button { padding: .5rem 1rem; border-radius: 6px; border: 1px solid #888; cursor: pointer; }
+</style>
+</head>
+<body>
+  <h1>MobileHumanPose</h1>
+  <p class="sub">Real-time 2D human pose estimation running fully in your browser via ONNX Runtime Web.</p>
+
+  <p>
+    <input type="file" id="file" accept="image/*" />
+    <button id="run" disabled>Estimate pose</button>
+  </p>
+  <p id="status">Loading model&hellip;</p>
+
+  <div class="row">
+    <div><strong>Input (center-cropped 256&times;256)</strong><br /><canvas id="in" width="256" height="256"></canvas></div>
+    <div><strong>Predicted pose</strong><br /><canvas id="out" width="256" height="256"></canvas></div>
+  </div>
+
+  <p class="note">
+    This static demo runs the <em>MobileHumanPose</em> (LpNet) model exported to ONNX. For
+    simplicity it assumes a single, roughly-centered person (center-square crop &mdash; no
+    in-browser person detector). The bundled weights come from the pipeline's small,
+    CPU-trained, auto-labeled demo run, so predictions are approximate. The Gradio app in the
+    repo includes a person detector and multi-person support.
+  </p>
+
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+  <script src="demo.js"></script>
+</body>
+</html>
