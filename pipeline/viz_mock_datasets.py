@@ -1,8 +1,13 @@
-"""Visualize each mock dataset's keypoints on its real human images.
+"""Visualize AND validate every mock-dataset image.
 
-Draws, per dataset, the loader's own ``joint_img`` (the 2D pixel coords the
-model trains on) + the dataset's skeleton on the real image, and a 3D skeleton
-plot from ``joint_cam`` for the 3D datasets. Outputs to /tmp/mock_viz/.
+For each dataset it:
+  * draws the loader's own joint_img + skeleton on every real image,
+  * builds a grid montage of all images,
+  * validates each person: keypoints in-bounds, keypoints inside the (expanded)
+    bbox, and -- for 3D datasets -- that joint_cam reprojects onto joint_img.
+
+Outputs montages + per-image overlays to /tmp/mock_viz/. Exits non-zero if any
+dataset's validity rate is below threshold.
 """
 
 import os
@@ -25,6 +30,7 @@ for d in os.listdir(osp.join(REPO, "data")):
 os.chdir(REPO)
 from config import cfg  # noqa
 cfg.set_args("0")
+from utils.pose_utils import cam2pixel
 
 OUT = "/tmp/mock_viz"
 os.makedirs(OUT, exist_ok=True)
@@ -36,83 +42,102 @@ def _colors(n):
             for r, g, b, _ in (_CMAP(i / max(n, 1)) for i in range(n))]
 
 
-def draw_2d(img, joints_xy, skeleton, joints_name):
+def draw_2d(img, joints_xy, skeleton):
     cols = _colors(len(skeleton))
     for e, (a, b) in enumerate(skeleton):
-        pa, pb = joints_xy[a], joints_xy[b]
-        cv2.line(img, tuple(np.int32(pa)), tuple(np.int32(pb)), cols[e], 3, cv2.LINE_AA)
-    for j, (x, y) in enumerate(joints_xy):
-        cv2.circle(img, (int(x), int(y)), 4, (255, 255, 255), -1, cv2.LINE_AA)
-        cv2.circle(img, (int(x), int(y)), 4, (0, 0, 0), 1, cv2.LINE_AA)
+        cv2.line(img, tuple(np.int32(joints_xy[a])), tuple(np.int32(joints_xy[b])),
+                 cols[e], 2, cv2.LINE_AA)
+    for x, y in joints_xy:
+        cv2.circle(img, (int(x), int(y)), 3, (255, 255, 255), -1, cv2.LINE_AA)
+        cv2.circle(img, (int(x), int(y)), 3, (0, 0, 0), 1, cv2.LINE_AA)
     return img
 
 
-def render_3d(joints_cam, skeleton, title, path):
-    fig = plt.figure(figsize=(4.2, 4.6))
-    ax = fig.add_subplot(111, projection="3d")
-    X, Y, Z = joints_cam[:, 0], joints_cam[:, 1], joints_cam[:, 2]
-    cols = _CMAP(np.linspace(0, 1, len(skeleton)))
-    for e, (a, b) in enumerate(skeleton):
-        ax.plot([X[a], X[b]], [Z[a], Z[b]], [-Y[a], -Y[b]], c=cols[e], lw=2)
-    ax.scatter(X, Z, -Y, c="k", s=12)
-    ax.set_title(title, fontsize=9)
-    ax.set_xlabel("X"); ax.set_ylabel("Z (depth)"); ax.set_zlabel("-Y")
-    ax.view_init(elev=12, azim=-72)
-    fig.tight_layout(); fig.savefig(path, dpi=110); plt.close(fig)
+def expand_bbox(b, m=0.6):
+    x, y, w, h = b
+    return [x - m * w, y - m * h, w * (1 + 2 * m), h * (1 + 2 * m)]
 
 
-def banner(img, text):
-    cv2.rectangle(img, (0, 0), (img.shape[1], 30), (0, 0, 0), -1)
-    cv2.putText(img, text, (8, 21), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2, cv2.LINE_AA)
-    return img
+def validate_person(item, W, H):
+    """Return dict of validity metrics for one person annotation."""
+    xy = np.array(item["joint_img"])[:, :2]
+    inb = np.mean((xy[:, 0] >= 0) & (xy[:, 0] < W) & (xy[:, 1] >= 0) & (xy[:, 1] < H))
+    ex, ey, ew, eh = expand_bbox(item["bbox"])
+    inbox = np.mean((xy[:, 0] >= ex) & (xy[:, 0] <= ex + ew) &
+                    (xy[:, 1] >= ey) & (xy[:, 1] <= ey + eh))
+    reproj_err = None
+    if "joint_cam" in item and "f" in item and "c" in item and np.any(item["joint_cam"]):
+        rep = cam2pixel(np.array(item["joint_cam"]), np.array(item["f"]), np.array(item["c"]))[:, :2]
+        reproj_err = float(np.max(np.abs(rep - xy)))
+    ok = inb >= 0.6 and inbox >= 0.6 and (reproj_err is None or reproj_err < 1.0)
+    return {"in_bounds": inb, "in_bbox": inbox, "reproj_err": reproj_err, "ok": ok}
 
 
-def visualize(name, split, tag):
+def make_grid(images, cols=5, cell_h=200):
+    cells = []
+    for im in images:
+        s = cell_h / im.shape[0]
+        cells.append(cv2.resize(im, (int(im.shape[1] * s), cell_h)))
+    cw = max(c.shape[1] for c in cells)
+    cells = [np.pad(c, ((0, 0), (0, cw - c.shape[1]), (0, 0))) for c in cells]
+    while len(cells) % cols:
+        cells.append(np.zeros_like(cells[0]))
+    rows = [np.hstack(cells[i:i + cols]) for i in range(0, len(cells), cols)]
+    return np.vstack(rows)
+
+
+def process(name, split):
     mod = __import__(name)
     db = getattr(mod, name)(split)
     by_img = defaultdict(list)
     for d in db.data:
         by_img[d["img_path"]].append(d)
-    img_path, items = max(by_img.items(), key=lambda kv: len(kv[1]))  # most people
-    img = cv2.imread(img_path)
-    for d in items:
-        draw_2d(img, np.array(d["joint_img"])[:, :2], db.skeleton, db.joints_name)
-    img = banner(img, "%s  %s  %dj  %d person(s)" % (name, tag, db.joint_num, len(items)))
-    h = 360
-    img = cv2.resize(img, (int(img.shape[1] * h / img.shape[0]), h))
-    p2d = osp.join(OUT, "%s_2d.jpg" % name)
-    cv2.imwrite(p2d, img)
-    p3d = None
-    if "joint_cam" in items[0] and db.joints_have_depth:
-        p3d = osp.join(OUT, "%s_3d.png" % name)
-        render_3d(np.array(items[0]["joint_cam"]), db.skeleton,
-                  "%s 3D (camera coords)" % name, p3d)
-    print("[%s] %s | joints: %s" % (name, tag, ", ".join(db.joints_name)))
-    return p2d, p3d
+
+    overlays, metrics = [], []
+    sub = osp.join(OUT, name)
+    os.makedirs(sub, exist_ok=True)
+    for k, (img_path, items) in enumerate(sorted(by_img.items())):
+        img = cv2.imread(img_path)
+        if img is None:
+            continue
+        H, W = img.shape[:2]
+        for it in items:
+            metrics.append(validate_person(it, W, H))
+            draw_2d(img, np.array(it["joint_img"])[:, :2], db.skeleton)
+        cv2.rectangle(img, (0, 0), (W, 22), (0, 0, 0), -1)
+        cv2.putText(img, "%s #%d (%d ppl)" % (name, k, len(items)), (5, 16),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+        cv2.imwrite(osp.join(sub, "%02d.jpg" % k), img)
+        overlays.append(img)
+
+    grid = make_grid(overlays, cols=5)
+    cv2.imwrite(osp.join(OUT, "grid_%s.jpg" % name), grid)
+
+    n = len(metrics)
+    n_ok = sum(m["ok"] for m in metrics)
+    inb = np.mean([m["in_bounds"] for m in metrics])
+    inbox = np.mean([m["in_bbox"] for m in metrics])
+    rerr = [m["reproj_err"] for m in metrics if m["reproj_err"] is not None]
+    rstr = ("reproj<=%.3fpx" % max(rerr)) if rerr else "2D"
+    print("  %-9s images=%2d persons=%3d  valid=%3d/%-3d  in_bounds=%.2f in_bbox=%.2f  %s"
+          % (name, len(overlays), n, n_ok, n, inb, inbox, rstr))
+    return n, n_ok
 
 
 def main():
-    specs = [("MSCOCO", "train", "2D"), ("MPII", "train", "2D"),
-             ("Human36M", "train", "3D"), ("MuCo", "train", "3D"),
-             ("MuPoTS", "test", "3D")]
-    twod, threed = [], []
-    for name, split, tag in specs:
-        p2d, p3d = visualize(name, split, tag)
-        twod.append(p2d)
-        if p3d:
-            threed.append(p3d)
-
-    # montage of the 2D overlays (rows of 2, normalized to common height)
-    H = 320
-    imgs = [cv2.imread(p) for p in twod]
-    imgs = [cv2.resize(i, (int(i.shape[1] * H / i.shape[0]), H)) for i in imgs]
-    W = max(i.shape[1] for i in imgs)
-    imgs = [np.pad(i, ((0, 0), (0, W - i.shape[1]), (0, 0))) for i in imgs]
-    if len(imgs) % 2:
-        imgs.append(np.zeros_like(imgs[0]))
-    rows = [np.hstack(imgs[i:i + 2]) for i in range(0, len(imgs), 2)]
-    cv2.imwrite(osp.join(OUT, "montage_2d.jpg"), np.vstack(rows))
-    print("wrote montage_2d.jpg and per-dataset overlays to", OUT)
+    specs = [("MSCOCO", "train"), ("MPII", "train"), ("Human36M", "train"),
+             ("MuCo", "train"), ("MuPoTS", "test")]
+    print("== per-image keypoint validity (all datasets) ==")
+    total, ok = 0, 0
+    for name, split in specs:
+        n, n_ok = process(name, split)
+        total += n; ok += n_ok
+    rate = ok / max(total, 1)
+    print("\nTOTAL valid persons: %d/%d (%.1f%%)  -> grids in %s" % (ok, total, 100 * rate, OUT))
+    if rate < 0.9:
+        print("VALIDATION FAILED: validity rate below 90%")
+        sys.exit(1)
+    print("VALIDATION PASSED.")
 
 
 if __name__ == "__main__":

@@ -74,7 +74,12 @@ repo format so every loader runs out-of-the-box (no multi-GB downloads):
 | MuCo    | 3D | 21 | `MuCo-3DHP.json` (per-img `f,c`; per-ann `keypoints_cam/img`) |
 | MuPoTS  | 3D test | 17→21 | `data/MuPoTS-3D.json` (per-img `intrinsic`) + `MultiPersonTestSet/` |
 
-- **Real images** come from the committed, license-clean fallback assets.
+- **Real images**: a ~20-image license-clean Wikimedia pool
+  (`pipeline/assets/mock_source/`, seeded by the bundled fallback assets); each
+  image is annotated into **all** dataset formats.
+- **Validated**: `pipeline/viz_mock_datasets.py` checks every person annotation
+  is in-bounds, inside its bbox, and (3D) reprojects from `joint_cam` onto
+  `joint_img` (currently 269/269 = 100%), and renders per-image overlay grids.
 - **2D keypoints** are real KeypointRCNN detections, remapped to each dataset's
   joint convention (deriving Pelvis/Thorax/Neck/Spine/Head_top, mapping
   hands→wrists and toes→ankles where a dataset has joints COCO lacks).

@@ -21,3 +21,12 @@ def test_all_dataset_formats_load_2d_and_3d():
     for name in ("MSCOCO", "MPII", "Human36M", "MuCo", "MuPoTS"):
         assert ("[OK] %-9s" % name)[:14] in out or name in out, "missing %s in output" % name
     assert "ALL DATASET CHECKS PASSED" in out
+
+
+def test_mock_keypoints_are_valid_on_every_image():
+    """Every mock annotation must be in-bounds, in-bbox, and (3D) reproject."""
+    script = osp.join(REPO, "pipeline", "viz_mock_datasets.py")
+    res = subprocess.run([sys.executable, script], cwd=REPO,
+                         capture_output=True, text=True, timeout=600)
+    assert res.returncode == 0, "validation failed:\n" + res.stdout + res.stderr
+    assert "VALIDATION PASSED" in res.stdout

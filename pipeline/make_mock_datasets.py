@@ -2,7 +2,8 @@
 
 For each dataset (Human3.6M, MPII, MSCOCO, MuCo, MuPoTS) this writes the exact
 on-disk structure the corresponding loader expects, populated with:
-  * real person images (from the committed fallback assets), and
+  * ~20 real person images (a license-clean Wikimedia pool in
+    pipeline/assets/mock_source, seeded by the bundled fallback assets), and
   * real 2D keypoints from a pretrained KeypointRCNN.
 
 For the 3D datasets the 2D keypoints are lifted to camera-consistent 3D: with
@@ -11,7 +12,7 @@ focal f and principal point c, each joint gets a plausible root-relative depth
 exactly onto the real 2D detection. The result is a genuine "3D human in the
 image with keypoints", not random noise.
 
-Output: data/<Dataset>/...   (committed; small, images resized to <=640px)
+Output: data/<Dataset>/...   (committed; images resized to <=512px)
 Run:    python pipeline/make_mock_datasets.py
 """
 
@@ -30,8 +31,11 @@ from common import REPO_DIR, FALLBACK_DIR, ensure_dir, get_logger
 
 log = get_logger("mockgen")
 DATA_DIR = osp.join(REPO_DIR, "data")
+SRC_DIR = osp.join(REPO_DIR, "pipeline", "assets", "mock_source")
 COCO_PERSON = 1
-MAX_SIDE = 640
+MAX_SIDE = 512
+N_IMAGES = 20
+JPEG = [cv2.IMWRITE_JPEG_QUALITY, 85]
 ROOT_DEPTH = 4000.0  # mm
 FOCAL = [1500.0, 1500.0]
 
@@ -101,13 +105,76 @@ def _load_models():
 
 
 @torch.no_grad()
-def collect_people(kp_model, max_images=5, det_score=0.85):
-    """Return list of (resized_bgr, [persons]) from the committed real images."""
-    files = sorted(f for f in os.listdir(FALLBACK_DIR)
+def _has_person(kp_model, bgr, score=0.9):
+    rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    pred = kp_model([to_tensor(rgb)])[0]
+    return any(int(l) == COCO_PERSON and float(s) >= score
+               for l, s in zip(pred["labels"], pred["scores"]))
+
+
+def ensure_source_images(kp_model, n=N_IMAGES):
+    """Populate pipeline/assets/mock_source with >= n license-clean person images
+    (Wikimedia Commons), seeded by the committed fallback assets. Idempotent."""
+    import io
+    import requests
+    from stage01_crawl import from_wikimedia, HEADERS
+    ensure_dir(SRC_DIR)
+    existing = [f for f in os.listdir(SRC_DIR) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+    if len(existing) >= n:
+        return len(existing)
+
+    # seed from committed fallback assets
+    for f in sorted(os.listdir(FALLBACK_DIR)):
+        if f.lower().endswith((".jpg", ".jpeg", ".png")):
+            shutil.copy2(osp.join(FALLBACK_DIR, f), osp.join(SRC_DIR, "seed_" + f))
+
+    queries = ["person full body standing", "athlete running", "people walking street",
+               "dancer performing", "soccer player", "yoga pose person",
+               "basketball player", "person portrait full body"]
+    credits, idx = [], 0
+    saved = len([f for f in os.listdir(SRC_DIR) if f.lower().endswith((".jpg", ".jpeg", ".png"))])
+    for q in queries:
+        if saved >= n:
+            break
+        for cand in from_wikimedia(q, 12):
+            if saved >= n:
+                break
+            try:
+                content = requests.get(cand["url"], headers=HEADERS, timeout=20).content
+                from PIL import Image
+                img = Image.open(io.BytesIO(content)).convert("RGB")
+            except Exception:
+                continue
+            bgr = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+            h, w = bgr.shape[:2]
+            if min(h, w) < 200:
+                continue
+            if max(h, w) > MAX_SIDE:
+                sc = MAX_SIDE / max(h, w)
+                bgr = cv2.resize(bgr, (int(w * sc), int(h * sc)))
+            if not _has_person(kp_model, bgr):
+                continue
+            fn = "wiki_%02d.jpg" % idx
+            idx += 1
+            cv2.imwrite(osp.join(SRC_DIR, fn), bgr, [cv2.IMWRITE_JPEG_QUALITY, 88])
+            credits.append({"file": fn, "title": cand.get("title"),
+                            "license": cand.get("license"), "url": cand["url"]})
+            saved += 1
+    with open(osp.join(SRC_DIR, "CREDITS.json"), "w") as f:
+        json.dump({"source": "Wikimedia Commons + bundled fallback", "images": credits}, f, indent=2)
+    log.info("Source pool now has %d images in %s", saved, SRC_DIR)
+    return saved
+
+
+@torch.no_grad()
+def collect_people(kp_model, max_images=N_IMAGES, det_score=0.85, src_dir=None):
+    """Return list of (resized_bgr, [persons]) from the real source images."""
+    src_dir = src_dir or (SRC_DIR if osp.isdir(SRC_DIR) and os.listdir(SRC_DIR) else FALLBACK_DIR)
+    files = sorted(f for f in os.listdir(src_dir)
                    if f.lower().endswith((".jpg", ".jpeg", ".png")))
     out = []
     for fn in files:
-        bgr = cv2.imread(osp.join(FALLBACK_DIR, fn))
+        bgr = cv2.imread(osp.join(src_dir, fn))
         if bgr is None:
             continue
         h, w = bgr.shape[:2]
@@ -126,6 +193,7 @@ def collect_people(kp_model, max_images=5, det_score=0.85):
             people.append({"kps": kps, "bbox": [float(x1), float(y1),
                                                 float(x2 - x1), float(y2 - y1)]})
         if people:
+            people.sort(key=lambda pp: pp["bbox"][2] * pp["bbox"][3], reverse=True)
             out.append((bgr, people))
         if len(out) >= max_images:
             break
@@ -149,7 +217,7 @@ def gen_mscoco(samples):
     aid = 0
     for iid, (bgr, people) in enumerate(samples):
         fn = "%012d.jpg" % iid
-        cv2.imwrite(osp.join(img_dir, fn), bgr)
+        cv2.imwrite(osp.join(img_dir, fn), bgr, JPEG)
         h, w = bgr.shape[:2]
         images.append({"id": iid, "file_name": fn, "width": w, "height": h})
         for person in people:
@@ -175,7 +243,7 @@ def gen_mpii(samples):
     aid = 0
     for iid, (bgr, people) in enumerate(samples):
         fn = osp.join("images", "img_%d.jpg" % iid)
-        cv2.imwrite(osp.join(root, fn), bgr)
+        cv2.imwrite(osp.join(root, fn), bgr, JPEG)
         h, w = bgr.shape[:2]
         images.append({"id": iid, "file_name": fn, "width": w, "height": h})
         for person in people:
@@ -196,26 +264,31 @@ def gen_human36m(samples):
     annot_dir = ensure_dir(osp.join(root, "annotations"))
     _fresh(osp.join(root, "images"))
     subjects = [1, 5, 6, 7, 8]   # H36M train subjects (loader opens a file per subject)
-    per = {s: {"data": {"images": [], "annotations": []},
-               "cam": {"1": {"R": np.eye(3).tolist(), "t": [0.0, 0.0, 0.0], "f": FOCAL, "c": [0, 0]}},
-               "joints": {}} for s in subjects}
+    per = {s: {"data": {"images": [], "annotations": []}, "cam": {}, "joints": {}}
+           for s in subjects}
+    cam_ctr = {s: 0 for s in subjects}
     iid = 0
     for i, (bgr, people) in enumerate(samples):
         s = subjects[i % len(subjects)]
-        action_idx = 2 + i // len(subjects)   # unique per subject
-        stem = "s_%02d_act_%02d_subact_01_ca_01" % (s, action_idx)
+        cam_ctr[s] += 1
+        # each frame gets its OWN camera (cam_idx) so its principal point c
+        # matches its own resolution -- H36M shares c per (subject, cam_idx).
+        cam_idx = cam_ctr[s]
+        action_idx = 2 + (cam_idx - 1)        # unique per subject
+        stem = "s_%02d_act_%02d_subact_01_ca_%02d" % (s, action_idx, cam_idx)
         ensure_dir(osp.join(root, "images", stem))
         fn = osp.join(stem, "%s_%06d.jpg" % (stem, 0))
-        cv2.imwrite(osp.join(root, "images", fn), bgr)
+        cv2.imwrite(osp.join(root, "images", fn), bgr, JPEG)
         h, w = bgr.shape[:2]
         c = [w / 2.0, h / 2.0]
-        per[s]["cam"]["1"]["c"] = c
+        per[s]["cam"][str(cam_idx)] = {"R": np.eye(3).tolist(), "t": [0.0, 0.0, 0.0],
+                                       "f": FOCAL, "c": c}
         p = named_points(people[0]["kps"])
         cam3d, _ = lift_3d(p, H36M17, FOCAL, c)   # world == cam (R=I, t=0)
         per[s]["data"]["images"].append({"id": iid, "file_name": fn, "width": w, "height": h,
                                          "subject": s, "action_name": "Directions",
                                          "action_idx": action_idx, "subaction_idx": 1,
-                                         "cam_idx": 1, "frame_idx": 0})
+                                         "cam_idx": cam_idx, "frame_idx": 0})
         per[s]["data"]["annotations"].append({"id": iid, "image_id": iid, "bbox": people[0]["bbox"]})
         per[s]["joints"].setdefault(str(action_idx), {})["1"] = {"0": cam3d.tolist()}
         iid += 1
@@ -236,7 +309,7 @@ def gen_muco(samples):
     aid = 0
     for iid, (bgr, people) in enumerate(samples):
         fn = osp.join("images", "img_%d.jpg" % iid)
-        cv2.imwrite(osp.join(root, fn), bgr)
+        cv2.imwrite(osp.join(root, fn), bgr, JPEG)
         h, w = bgr.shape[:2]
         c = [w / 2.0, h / 2.0]
         images.append({"id": iid, "file_name": fn, "width": w, "height": h, "f": FOCAL, "c": c})
@@ -259,7 +332,7 @@ def gen_mupots(samples):
     aid = 0
     for iid, (bgr, people) in enumerate(samples):
         ts = ensure_dir(osp.join(img_root, "TS%d" % (iid + 1)))
-        cv2.imwrite(osp.join(ts, "img_000001.jpg"), bgr)
+        cv2.imwrite(osp.join(ts, "img_000001.jpg"), bgr, JPEG)
         fn = osp.join("TS%d" % (iid + 1), "img_000001.jpg")
         h, w = bgr.shape[:2]
         c = [w / 2.0, h / 2.0]
@@ -279,7 +352,8 @@ def gen_mupots(samples):
 
 def main():
     kp = _load_models()
-    samples = collect_people(kp)
+    ensure_source_images(kp, N_IMAGES)
+    samples = collect_people(kp, max_images=N_IMAGES)
     summary = {
         "MSCOCO (2D)": gen_mscoco(samples),
         "MPII (2D)": gen_mpii(samples),
