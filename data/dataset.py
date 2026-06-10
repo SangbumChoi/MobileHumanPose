@@ -121,21 +121,43 @@ class DatasetLoader(Dataset):
         return len(self.db)
 
 # helper functions
+
+# Augmentation strengths. Defaults match the original repo (tuned for
+# million-sample datasets like Human3.6M). For small datasets, override via
+# set_aug_config() -- e.g. the pipeline trainer uses a mild profile, since at
+# this scale heavy occlusion/rotation prevents convergence (mean-pose collapse).
+AUG_CFG = {
+    'scale_factor': 0.25,
+    'rot_factor': 30,        # x2 sigma clip -> up to +-60 deg
+    'rot_prob': 0.6,
+    'color_factor': 0.2,
+    'flip_prob': 0.5,
+    'occlusion_prob': 0.5,
+    'occlusion_area_max': 0.7,
+}
+
+
+def set_aug_config(**kwargs):
+    for k, v in kwargs.items():
+        assert k in AUG_CFG, 'unknown aug key: %s' % k
+        AUG_CFG[k] = v
+
+
 def get_aug_config():
-    
-    scale_factor = 0.25
-    rot_factor = 30
-    color_factor = 0.2
-    
+
+    scale_factor = AUG_CFG['scale_factor']
+    rot_factor = AUG_CFG['rot_factor']
+    color_factor = AUG_CFG['color_factor']
+
     scale = np.clip(np.random.randn(), -1.0, 1.0) * scale_factor + 1.0
     rot = np.clip(np.random.randn(), -2.0,
-                  2.0) * rot_factor if random.random() <= 0.6 else 0
-    do_flip = random.random() <= 0.5
+                  2.0) * rot_factor if random.random() <= AUG_CFG['rot_prob'] else 0
+    do_flip = random.random() <= AUG_CFG['flip_prob']
     c_up = 1.0 + color_factor
     c_low = 1.0 - color_factor
     color_scale = [random.uniform(c_low, c_up), random.uniform(c_low, c_up), random.uniform(c_low, c_up)]
 
-    do_occlusion = random.random() <= 0.5
+    do_occlusion = random.random() <= AUG_CFG['occlusion_prob']
 
     return scale, rot, do_flip, color_scale, do_occlusion
 
@@ -148,7 +170,7 @@ def generate_patch_image(cvimg, bbox, do_flip, scale, rot, do_occlusion):
     if do_occlusion:
         while True:
             area_min = 0.0
-            area_max = 0.7
+            area_max = AUG_CFG['occlusion_area_max']
             synth_area = (random.random() * (area_max - area_min) + area_min) * bbox[2] * bbox[3]
 
             ratio_min = 0.3

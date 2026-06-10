@@ -71,6 +71,45 @@ def test_5_train_via_repo_trainer():
     assert snaps, "repo-format snapshot was not written by base.Trainer"
 
 
+def test_5b_training_path_can_overfit():
+    """Regression guard for the training path: with augmentation off, the model
+    must be able to fit a small fixed batch. Catches structural bugs in the
+    loss/coordinate/data pipeline that plateauing train loss would mask."""
+    import sys
+    import torch
+    import torchvision.transforms as T
+    for p in ["main", "data", "common", "data/CrawlPipeline"]:
+        sys.path.insert(0, osp.join(common.REPO_DIR, p))
+    from config import cfg
+    cfg.trainset_3d = ["CrawlPipeline"]; cfg.trainset_2d = []; cfg.testset = "CrawlPipeline"
+    from dataset import DatasetLoader
+    from CrawlPipeline import CrawlPipeline
+    from model import get_pose_net
+
+    db = CrawlPipeline("train")
+    loader = DatasetLoader(db, None, True, T.Compose(
+        [T.ToTensor(), T.Normalize(mean=cfg.pixel_mean, std=cfg.pixel_std)]))
+    loader.do_augment = False
+    batch = [loader[i] for i in range(8)]
+    img = torch.stack([torch.as_tensor(b[0]) for b in batch])
+    tgt = torch.stack([torch.as_tensor(b[1]) for b in batch])
+    vis = torch.stack([torch.as_tensor(b[2]) for b in batch])
+    hd = torch.stack([torch.as_tensor(b[3]) for b in batch])
+
+    torch.manual_seed(0)
+    model = get_pose_net("LPSKI", True, db.joint_num)
+    opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+    model.train()
+    first = None
+    for _ in range(120):
+        loss = model(img, {"coord": tgt, "vis": vis, "have_depth": hd}).mean()
+        if first is None:
+            first = loss.item()
+        opt.zero_grad(); loss.backward(); opt.step()
+    assert loss.item() < 0.6 and loss.item() < first * 0.5, \
+        "training path cannot overfit a fixed batch (%.3f -> %.3f)" % (first, loss.item())
+
+
 def test_6_model_3d_keypoint_output():
     """The model must emit a full 3D keypoint per joint (x, y, depth)."""
     import torch

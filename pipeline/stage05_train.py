@@ -56,6 +56,16 @@ def train(epochs=20, batch_size=8, lr=1e-3, num_thread=0, backbone="LPSKI",
     # imports the datasets named in cfg at import time).
     from base import Trainer
 
+    # Mild augmentation profile: the repo defaults (rot +-60, occlusion 50%
+    # covering up to 70% of the person) are tuned for million-sample datasets
+    # and cause mean-pose collapse at our scale (verified: with them the model
+    # cannot even memorize a fixed batch's distribution; without them a fixed
+    # batch overfits to loss ~0.05).
+    import dataset as repo_dataset
+    repo_dataset.set_aug_config(rot_factor=15, rot_prob=0.4, scale_factor=0.15,
+                                occlusion_prob=0.15, occlusion_area_max=0.3,
+                                color_factor=0.1)
+
     trainer = Trainer(cfg)
     trainer._make_batch_generator()
     trainer._make_model()
