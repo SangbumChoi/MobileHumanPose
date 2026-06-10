@@ -24,8 +24,12 @@ _DETECTOR = None
 def get_detector():
     global _DETECTOR
     if _DETECTOR is None:
-        w = torchvision.models.detection.FasterRCNN_MobileNet_V3_Large_320_FPN_Weights.DEFAULT
-        _DETECTOR = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_320_fpn(weights=w)
+        # Use the SAME detector the data was annotated/trained with
+        # (KeypointRCNN), so the person crop is framed exactly as in training.
+        # Using a different detector (e.g. MobileNet) reframes the crop and
+        # adds a large systematic placement error (~37px vs ~23px image-space).
+        w = torchvision.models.detection.KeypointRCNN_ResNet50_FPN_Weights.DEFAULT
+        _DETECTOR = torchvision.models.detection.keypointrcnn_resnet50_fpn(weights=w)
         _DETECTOR.eval()
     return _DETECTOR
 

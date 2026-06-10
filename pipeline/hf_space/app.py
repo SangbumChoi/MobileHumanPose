@@ -38,8 +38,11 @@ _DET = None
 def _detector():
     global _DET
     if _DET is None:
-        w = torchvision.models.detection.FasterRCNN_MobileNet_V3_Large_320_FPN_Weights.DEFAULT
-        _DET = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_320_fpn(weights=w).eval()
+        # Match the detector used to annotate/train the model (KeypointRCNN) so
+        # the person crop is framed as in training -- a different detector
+        # reframes the crop and shifts the whole skeleton (global placement error).
+        w = torchvision.models.detection.KeypointRCNN_ResNet50_FPN_Weights.DEFAULT
+        _DET = torchvision.models.detection.keypointrcnn_resnet50_fpn(weights=w).eval()
     return _DET
 
 
