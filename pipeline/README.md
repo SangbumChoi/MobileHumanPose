@@ -21,6 +21,7 @@ crawl ──▶ curate ──▶ annotate ──▶ embed-curate ──▶ train
 | 6a. Deploy (server) | `stage06_demo.py` | Gradio app: detect + pose, multi-person | Faster-RCNN + trained LpNet |
 | 6b. Deploy (static) | `export_onnx.py` + `web/` | ONNX + ONNX-Runtime-Web in-browser demo | trained LpNet (ONNX) |
 | 6c. Deploy (HF Space) | `hf_space/` | Gradio Space (onnxruntime + detector), ready to push to Hugging Face | LpNet (ONNX) |
+| 6d. Deploy (mobile) | `export_mobile.py` | TFLite (float32/float16, parity-checked) + Core ML `.mlpackage` | LpNet |
 
 ## Install
 
