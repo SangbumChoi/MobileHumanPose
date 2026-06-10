@@ -1,0 +1,7 @@
+gradio
+onnxruntime
+torch
+torchvision
+opencv-python-headless
+numpy
+pillow
