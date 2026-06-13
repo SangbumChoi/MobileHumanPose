@@ -28,13 +28,13 @@ from common import (REPO_DIR, MODELS_DIR, JOINTS_NAME, SKELETON, INPUT_SHAPE,
 log = get_logger("train")
 
 
-def _configure_cfg(backbone, epochs, batch_size, lr, num_thread):
+def _configure_cfg(backbone, epochs, batch_size, lr, num_thread, resume=False):
     """Set up the repo's global cfg to train on CrawlPipeline (before importing base)."""
     sys.path.insert(0, osp.join(REPO_DIR, "main"))
     sys.path.insert(0, osp.join(REPO_DIR, "data"))
     sys.path.insert(0, osp.join(REPO_DIR, "data", "CrawlPipeline"))
     from config import cfg
-    cfg.set_args(gpu_ids="0", continue_train=False)  # auto-falls back to CPU
+    cfg.set_args(gpu_ids="0", continue_train=resume)  # auto-falls back to CPU
     cfg.backbone = backbone
     cfg.trainset_3d = ["CrawlPipeline"]   # sole training set (2D; depth masked)
     cfg.trainset_2d = []
@@ -48,9 +48,9 @@ def _configure_cfg(backbone, epochs, batch_size, lr, num_thread):
 
 
 def train(epochs=20, batch_size=8, lr=1e-3, num_thread=0, backbone="LPSKI",
-          out_dir=MODELS_DIR):
+          out_dir=MODELS_DIR, save_every=15, resume=False):
     ensure_dir(out_dir)
-    cfg = _configure_cfg(backbone, epochs, batch_size, lr, num_thread)
+    cfg = _configure_cfg(backbone, epochs, batch_size, lr, num_thread, resume=resume)
 
     # Import the repo Trainer only AFTER cfg is configured (base.py dynamically
     # imports the datasets named in cfg at import time).
@@ -70,6 +70,17 @@ def train(epochs=20, batch_size=8, lr=1e-3, num_thread=0, backbone="LPSKI",
     trainer._make_batch_generator()
     trainer._make_model()
 
+    def _save_convenience(n_done):
+        """Persist the demo/ONNX checkpoint (backbone weights + meta). Called
+        periodically so a killed long run still leaves a usable, recent model."""
+        net = trainer.model.module if hasattr(trainer.model, "module") else trainer.model
+        ckpt = {"network": net.backbone.state_dict(),
+                "meta": {"joint_num": trainer.joint_num, "joints_name": list(JOINTS_NAME),
+                         "skeleton": [list(s) for s in SKELETON], "backbone": backbone,
+                         "input_shape": list(INPUT_SHAPE), "output_shape": list(OUTPUT_SHAPE),
+                         "depth_dim": DEPTH_DIM, "epochs_done": n_done}}
+        torch.save(ckpt, osp.join(out_dir, "pose_model.pth"))
+
     history = []
     for epoch in range(trainer.start_epoch, cfg.end_epoch):
         trainer.set_lr(epoch)
@@ -85,22 +96,21 @@ def train(epochs=20, batch_size=8, lr=1e-3, num_thread=0, backbone="LPSKI",
         history.append(avg)
         log.info("epoch %2d/%d  loss=%.4f  lr=%.1e", epoch + 1, cfg.end_epoch, avg, trainer.get_lr())
 
+        # Periodic checkpoint: survives container reclaim / process kill, and
+        # lets a re-launch resume via the repo Trainer's continue_train.
+        if save_every and (epoch + 1) % save_every == 0 and (epoch + 1) < cfg.end_epoch:
+            trainer.save_model({"epoch": epoch, "network": trainer.model.state_dict(),
+                                "optimizer": trainer.optimizer.state_dict()}, epoch)
+            _save_convenience(epoch + 1)
+            log.info("  checkpoint saved at epoch %d", epoch + 1)
+
     # Repo-format checkpoint (loadable by main/test.py).
     trainer.save_model({"epoch": cfg.end_epoch - 1,
                         "network": trainer.model.state_dict(),
                         "optimizer": trainer.optimizer.state_dict()}, cfg.end_epoch - 1)
 
-    # Convenience checkpoint for the demo / ONNX export. The repo's
-    # get_pose_net returns CustomNet(backbone); inference/onnx use the bare
-    # LpNetSkiConcat (common.build_model), so persist the backbone sub-module.
-    net = trainer.model.module if hasattr(trainer.model, "module") else trainer.model
-    ckpt = {"network": net.backbone.state_dict(),
-            "meta": {"joint_num": trainer.joint_num, "joints_name": list(JOINTS_NAME),
-                     "skeleton": [list(s) for s in SKELETON], "backbone": backbone,
-                     "input_shape": list(INPUT_SHAPE), "output_shape": list(OUTPUT_SHAPE),
-                     "depth_dim": DEPTH_DIM}}
+    _save_convenience(cfg.end_epoch)
     out_path = osp.join(out_dir, "pose_model.pth")
-    torch.save(ckpt, out_path)
     save_json({"loss_history": history, "epochs": epochs, "joint_num": trainer.joint_num},
               osp.join(out_dir, "train_log.json"))
 
@@ -123,6 +133,10 @@ if __name__ == "__main__":
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--backbone", default="LPSKI")
     ap.add_argument("--num_thread", type=int, default=0)
+    ap.add_argument("--save_every", type=int, default=15)
+    ap.add_argument("--resume", action="store_true",
+                    help="resume from the latest snapshot in output/model_dump")
     args = ap.parse_args()
     train(epochs=args.epochs, batch_size=args.batch_size, lr=args.lr,
-          backbone=args.backbone, num_thread=args.num_thread)
+          backbone=args.backbone, num_thread=args.num_thread,
+          save_every=args.save_every, resume=args.resume)
